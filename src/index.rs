@@ -28,7 +28,10 @@ CREATE TABLE IF NOT EXISTS files (
     description  TEXT,
     speaker      TEXT,
     series       TEXT,              -- explicit series / playlist name
-    position     INTEGER            -- order within a playlist or feed
+    position     INTEGER,           -- order within a playlist or feed
+    views        INTEGER,           -- YouTube statistics
+    likes        INTEGER,
+    comments     INTEGER
 );
 CREATE INDEX IF NOT EXISTS files_root_seen ON files(root, seen_at);
 
@@ -92,7 +95,7 @@ CREATE TABLE IF NOT EXISTS titles (
     id             INTEGER PRIMARY KEY,
     root           TEXT NOT NULL,
     key            TEXT NOT NULL,
-    kind           TEXT NOT NULL,   -- 'lecture' | 'series' | 'quran'
+    kind           TEXT NOT NULL,   -- 'lecture' | 'series' | 'quran' | 'film'
     name           TEXT NOT NULL,
     year           INTEGER,
     speaker        TEXT,
@@ -182,8 +185,9 @@ CREATE TABLE IF NOT EXISTS sources_state (
 // re-inserts, which would hand the row a new `id` and force a full FTS rewrite.
 const UPSERT: &str = r#"
 INSERT INTO files (root, url, name, dir, size, title, season, episode, year, seen_at, added_at,
-                   duration, label, published_at, thumb, description, speaker, series, position)
-VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18)
+                   duration, label, published_at, thumb, description, speaker, series, position,
+                   views, likes, comments)
+VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21)
 ON CONFLICT(url) DO UPDATE SET
     root = excluded.root, name = excluded.name, dir = excluded.dir,
     size = excluded.size, title = excluded.title, season = excluded.season,
@@ -191,7 +195,8 @@ ON CONFLICT(url) DO UPDATE SET
     duration = excluded.duration, label = excluded.label,
     published_at = excluded.published_at, thumb = excluded.thumb,
     description = excluded.description, speaker = excluded.speaker,
-    series = excluded.series, position = excluded.position
+    series = excluded.series, position = excluded.position,
+    views = excluded.views, likes = excluded.likes, comments = excluded.comments
 "#;
 
 const HIT_COLUMNS: &str = "f.id, f.root, f.url, f.name, f.dir, f.size, f.title, f.season, f.episode, f.year";
@@ -250,6 +255,9 @@ pub struct FileRow {
     pub speaker: Option<String>,
     pub series: Option<String>,
     pub position: Option<i64>,
+    pub views: Option<i64>,
+    pub likes: Option<i64>,
+    pub comments: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -328,7 +336,7 @@ impl Index {
                 upsert.execute(params![
                     f.root, f.url, f.name, f.dir, f.size, f.title, f.season, f.episode, f.year,
                     now, f.duration, f.label, f.published_at, f.thumb, f.description,
-                    f.speaker, f.series, f.position
+                    f.speaker, f.series, f.position, f.views, f.likes, f.comments
                 ])?;
             }
             let mut image = tx.prepare_cached(
@@ -513,6 +521,9 @@ impl Index {
 /// tables need an explicit ALTER.
 fn migrate(conn: &Connection) -> Result<()> {
     add_column(conn, "files", "title_id", "INTEGER")?;
+    for column in ["views", "likes", "comments"] {
+        add_column(conn, "files", column, "INTEGER")?;
+    }
     if add_column(conn, "files", "added_at", "INTEGER NOT NULL DEFAULT 0")? {
         conn.execute("UPDATE files SET added_at = seen_at", [])?;
     }

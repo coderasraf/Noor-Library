@@ -249,28 +249,29 @@ pub fn library_summary(conn: &Connection) -> Result<String> {
     let topics: Vec<String> = facets.topics.iter().map(|f| format!("{}:{}", f.value, f.count)).collect();
     let langs: Vec<String> = facets.languages.iter().map(|f| format!("{}:{}", f.value, f.count)).collect();
     Ok(format!(
-        "{} lectures, {} series and {} Quran recitations. Speakers: {}. Topics (key:count): {}. Languages (ISO 639-1:count): {}.",
+        "{} lectures, {} series, {} Quran recitations and {} films/documentaries. Speakers: {}. Topics (key:count): {}. Languages (ISO 639-1:count): {}.",
         c.lectures,
         c.series,
         c.quran,
+        c.films,
         if speakers.is_empty() { "unknown".into() } else { speakers.join(", ") },
         if topics.is_empty() { "none tagged".into() } else { topics.join(", ") },
         if langs.is_empty() { "unknown".into() } else { langs.join(", ") },
     ))
 }
 
-const INTENT_PROMPT: &str = r#"You help someone find Islamic lectures, series and Quran recitations in their own library.
+const INTENT_PROMPT: &str = r#"You help someone find Islamic lectures, series, Quran recitations, films and documentaries in their own library.
 Turn their latest request into a search plan. Reply with JSON only:
 {
   "titles": ["names of specific lectures or series that would fit, if any are well known"],
   "speakers": ["speaker names from the library's speaker list that fit the request"],
   "topics": ["topic keys from the library's topic list, e.g. Salah, Ramadan, Seerah, Family, Patience, Akhirah"],
   "language": "ISO 639-1 code (bn, en, ar, ur, hi) or null",
-  "kind": "lecture" | "series" | "quran" | null,
+  "kind": "lecture" | "series" | "quran" | "film" | null,
   "max_minutes": number or null,
   "keywords": ["words likely to appear in matching titles, in English AND Bangla"]
 }
-Use only speaker names and topic keys that appear in the library summary. "Bangla" or a request written in Bangla means language "bn" unless the user asks otherwise. "Short" means max_minutes 20. A request for recitation, tilawat or a surah means kind "quran"."#;
+Use only speaker names and topic keys that appear in the library summary. "Bangla" or a request written in Bangla means language "bn" unless the user asks otherwise. "Short" means max_minutes 20. A request for recitation, tilawat or a surah means kind "quran"; a film, movie, drama or documentary means kind "film"."#;
 
 const CHOOSE_PROMPT: &str = r#"You are a kind, respectful assistant for someone's personal Islamic media library.
 Recommend items ONLY from the candidate list provided (each has an id). Never mention lectures, speakers or recitations that are not in the list.
@@ -414,7 +415,7 @@ fn gather_candidates(conn: &Connection, plan: &Value) -> Result<Vec<Candidate>> 
     // Shared filters: kind, language, length.
     let mut filter = String::new();
     let mut base_args: Vec<rusqlite::types::Value> = Vec::new();
-    if let Some(k) = plan["kind"].as_str().filter(|k| matches!(*k, "lecture" | "series" | "quran")) {
+    if let Some(k) = plan["kind"].as_str().filter(|k| matches!(*k, "lecture" | "series" | "quran" | "film")) {
         filter.push_str(" AND kind = ?");
         base_args.push(k.to_string().into());
     }

@@ -127,8 +127,18 @@ fn crawl(cfg: &Config, only: Option<&str>, fresh: bool) -> Result<()> {
     let mode = if fresh { CrawlMode::Fresh } else { CrawlMode::Resume };
     let mut index = Index::open(cfg.db_file())?;
 
+    let mut failed = Vec::new();
     for root in roots {
-        let s = crawler::crawl_root(cfg, &mut index, root, mode, &StderrProgress)?;
+        // One unreachable source shouldn't stop the others.
+        let s = match crawler::crawl_root(cfg, &mut index, root, mode, &StderrProgress) {
+            Ok(s) => s,
+            Err(e) => {
+                eprintln!("{}: failed: {e:#}", root.name);
+                jobs::set_source_state(&index, &root.name, "error", Some(&format!("{e:#}")))?;
+                failed.push(root.name.as_str());
+                continue;
+            }
+        };
         // Group files into movies / shows so the app sees what the CLI found.
         let titles = library::rebuild_titles(&mut index, root)?;
         let status = if s.errors > 0 { "error" } else { "ok" };
@@ -156,6 +166,9 @@ fn crawl(cfg: &Config, only: Option<&str>, fresh: bool) -> Result<()> {
         } else if s.dirs == 0 && !fresh {
             println!("  nothing pending; use --fresh to re-walk and pick up new files");
         }
+    }
+    if !failed.is_empty() {
+        bail!("{} source(s) failed: {}", failed.len(), failed.join(", "));
     }
     Ok(())
 }

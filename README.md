@@ -4,7 +4,7 @@
 
 # Noor Library · নূর লাইব্রেরি
 
-**Your own Islamic media library for lectures, series and Quran recitations, in Bangla and English.**
+**Your own Islamic media library for lectures, series, Quran recitations, films and documentaries, in Bangla and English.**
 
 Add a server folder link, a folder on your PC, a YouTube channel or a podcast
 feed. Noor Library brings them together in one calm, searchable library,
@@ -34,7 +34,9 @@ Noor Library indexes all of them once and gives you one place to listen:
 
 - 🎙️ **Lectures, series and Quran, each in its own section.** A folder of
   numbered files becomes one series with its episodes in order. A reciter's
-  folder becomes one Quran title with all 114 surahs.
+  folder becomes one Quran title with all 114 surahs. Islamic films, dramas
+  and documentaries (The Message, Ertuğrul, Omar…) get a *Films & Docs*
+  section with seasons.
 - 👤 **Browse by speaker.** It finds speakers from folder names, podcast
   authors and video titles ("… | Dr. Omar Suleiman").
 - 🏷️ **Browse by topic.** Salah, Ramadan, Seerah, Family, Patience, Akhirah and
@@ -91,6 +93,8 @@ type: *Lectures*, *Series* or *Quran*. You can also set:
 | `talk.mp3` **and** `talk.wav` | A single item (the MP3 is preferred) |
 | A YouTube channel (as *Lectures*) | One lecture per video, with the speaker taken from the title |
 | A podcast (as *Series*) | One series with episodes ordered by date |
+| `Ertugrul/Season 1/…`, `Season 2/…` (as *Films*) | One drama with a tab per season |
+| A YouTube channel's Shorts | Left out, so the full talks aren't buried |
 
 Episode numbers are read from `S01E02`, `Part 3`, `Episode 4`, `পর্ব ৫`,
 `07 - …` and trailing numbers, in Bangla or Latin digits. A talk's language

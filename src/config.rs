@@ -90,6 +90,8 @@ fn is_false(b: &bool) -> bool {
 /// Lectures: single talks (a folder per talk, or loose files).
 /// Series: folders of numbered parts or episodes (tafsir, seerah...).
 /// Quran: reciter folders holding surah files (001.mp3 ... 114.mp3).
+/// Films: a folder per film or documentary (multi-part ones keep their
+/// parts in order).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum SourceKind {
@@ -97,6 +99,7 @@ pub enum SourceKind {
     Lectures,
     Series,
     Quran,
+    Films,
 }
 
 impl SourceKind {
@@ -105,6 +108,7 @@ impl SourceKind {
             SourceKind::Lectures => "lectures",
             SourceKind::Series => "series",
             SourceKind::Quran => "quran",
+            SourceKind::Films => "films",
         }
     }
 }

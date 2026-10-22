@@ -12,6 +12,7 @@ const ICONS = {
   home: '<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/>',
   mic: '<rect x="9" y="2" width="6" height="12" rx="3"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8"/>',
   layers: '<path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>',
+  film: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 3v18M17 3v18M3 7.5h4M3 12h18M3 16.5h4M17 7.5h4M17 16.5h4"/>',
   book: '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
   users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
   tag: '<path d="M12.6 2.6A2 2 0 0 0 11.2 2H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.7 8.7a2.4 2.4 0 0 0 3.4 0l6.6-6.6a2.4 2.4 0 0 0 0-3.4z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/>',
@@ -36,6 +37,10 @@ const ICONS = {
   trash: '<path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>',
   sparkles: '<path d="M12 3l1.9 5.8a2 2 0 0 0 1.3 1.3L21 12l-5.8 1.9a2 2 0 0 0-1.3 1.3L12 21l-1.9-5.8a2 2 0 0 0-1.3-1.3L3 12l5.8-1.9a2 2 0 0 0 1.3-1.3z"/><path d="M5 3v4M3 5h4M19 17v4M17 19h4"/>',
   x: '<path d="M18 6 6 18M6 6l12 12"/>',
+  thumbsUp: '<path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"/>',
+  comment: '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>',
+  link: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+  chevronRight: '<path d="m9 18 6-6-6-6"/>',
   chevronLeft: '<path d="m15 18-6-6 6-6"/>',
   check: '<path d="M20 6 9 17l-5-5"/>',
   checkCircle: '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
@@ -67,11 +72,12 @@ function icon(name, cls = '') {
 const STR = {
   en: {
     appName: 'Noor Library', tagline: 'Islamic media library',
-    home: 'Home', lectures: 'Lectures', series: 'Series', quran: 'Quran', speakers: 'Speakers', topics: 'Topics',
+    home: 'Home', lectures: 'Lectures', series: 'Series', quran: 'Quran', films: 'Films & Docs', speakers: 'Speakers', topics: 'Topics',
+    navGroups: { youtube: 'YouTube', quran: 'Quran reciters', web: 'Servers', feed: 'Podcasts', films: 'Films', folder: 'This PC' },
     navLibrary: 'Library', navSources: 'Sources', saved: 'Saved', recent: 'Continue listening', settings: 'Settings',
     addSource: 'Add a source', searchPh: 'Search lectures, speakers, topics…',
-    lecture: 'Lecture', seriesOne: 'Series', quranOne: 'Recitation',
-    nLectures: (n) => `${n} lecture${n == 1 ? '' : 's'}`, nSeries: (n) => `${n} series`, nQuran: (n) => `${n} recitation${n == 1 ? '' : 's'}`,
+    season: 'Season', lecture: 'Lecture', seriesOne: 'Series', quranOne: 'Recitation', filmOne: 'Film',
+    nLectures: (n) => `${n} lecture${n == 1 ? '' : 's'}`, nSeries: (n) => `${n} series`, nQuran: (n) => `${n} recitation${n == 1 ? '' : 's'}`, nFilms: (n) => `${n} film${n == 1 ? '' : 's'} & documentaries`,
     nItems: (n) => `${n} item${n == 1 ? '' : 's'}`, nResults: (n) => `${n} result${n == 1 ? '' : 's'}`, nSpeakers: (n) => `${n} speaker${n == 1 ? '' : 's'}`,
     nEpisodes: (n) => `${n} episode${n == 1 ? '' : 's'}`, nParts: (n) => `${n} part${n == 1 ? '' : 's'}`, nSurahs: (n) => `${n} surah${n == 1 ? '' : 's'}`,
     nLinks: (n) => `${n} source${n == 1 ? '' : 's'}`,
@@ -82,13 +88,15 @@ const STR = {
     sortUpdated: 'Recently updated', sortSaved: 'Recently saved',
     noMatches: 'No matches', noMatchesText: 'Nothing fits these filters.', clearFilters: 'Clear filters',
     emptyTitle: 'Your library is empty', emptyText: 'Add a server folder, a folder on this PC, a YouTube channel or a podcast feed to get started.',
+    jobPhase: { starting: 'starting', syncing: 'syncing', organising: 'organising' }, nFiles: (n) => `${num(n)} file${n == 1 ? '' : 's'}`, nFolders: (n) => `${num(n)} folders`,
     syncingTitle: 'Syncing your sources…', syncingText: 'Items appear as soon as each source finishes.',
     nothingYet: 'Nothing here yet', nothingYetText: 'Sync your sources to fill the library.', syncNow: 'Sync now',
     welcomeTitle: 'Welcome to Noor Library', welcomeText: 'Lectures, series and Quran recitations from your servers, folders, YouTube channels and podcasts, in one place.',
     ayahTr: '“Read in the name of your Lord who created.” (Al-‘Alaq 96:1)', startAdd: 'Add your first source',
-    rowContinue: 'Continue listening', rowLectures: 'New lectures', rowSeries: 'Series', rowQuran: 'Quran recitations', rowSaved: 'Saved for later',
+    rowContinue: 'Continue listening', rowLectures: 'New lectures', rowSeries: 'Series', rowQuran: 'Quran recitations', rowFilms: 'Films & documentaries', rowSaved: 'Saved for later',
     rowSpeakers: 'Speakers', rowTopics: 'Browse by topic', rowTopic: (t) => t,
     play: 'Play', resume: 'Resume', playAll: 'Play all', playFrom: (x) => `Play ${x}`, save: 'Save', saveOn: 'Saved', openFolder: 'Open folder',
+    nViews: (n) => `${compact(n)} views`, autoplay: 'Autoplay', moreFrom: (x) => `More from ${x}`, copyLink: 'Copy link', linkCopied: 'Link copied', episodeOf: (n, m) => `Episode ${n} of ${m}`, openPlayer: 'Open player', sortPopular: 'Most viewed',
     openYouTube: 'Open on YouTube', openIn: (p) => `Open in ${p}`, inPlayer: 'External player', watchHere: 'Play here',
     upNext: 'Up next', part: 'Part', episode: 'Episode', surah: 'Surah', verses: (n) => `${n} verses`, makki: 'Makki', madani: 'Madani',
     markWatched: 'Mark as finished', markUnwatched: 'Mark as not finished', more: 'More', less: 'Less', minLeft: (m) => `${m} min left`,
@@ -104,8 +112,8 @@ const STR = {
     location: 'Link or folder', locationHint: 'Everything inside is scanned.', type: 'Type', name: 'Name', nameHint: 'Shown in the sidebar.',
     speakerField: 'Speaker (optional)', speakerHint: 'For a source with one speaker.', speakerFolders: 'Folders inside are speaker names (Speaker/lecture.mp3)',
     checkLink: 'Check link', addAndSync: 'Add and sync', checking: 'Checking…',
-    kindLectures: 'Lectures', kindSeries: 'Series', kindQuran: 'Quran',
-    kindHint: { lectures: 'Each file (or folder) is one talk', series: 'Folders of numbered parts or episodes', quran: 'Reciter folders with surah files' },
+    kindLectures: 'Lectures', kindSeries: 'Series', kindQuran: 'Quran', kindFilms: 'Films',
+    kindHint: { lectures: 'Each file (or folder) is one talk', series: 'Folders of numbered parts or episodes', quran: 'Reciter folders with surah files', films: 'A folder per film or documentary' },
     checkOk: (o, n, f) => `✓ ${o}: ${n}${f ? `, ${f} folders` : ''}.`, originNames: { web: 'Server folder', folder: 'Folder on this PC', youtube: 'YouTube', feed: 'Podcast feed' },
     looksLike: (k) => `Looks like: ${k}.`, added: (n) => `Added “${n}”. Syncing now — items appear when it finishes.`,
     yourSources: 'Your sources', fullRescan: 'Full rescan', syncAll: 'Sync all', syncing: 'Syncing…', sync: 'Sync', stop: 'Stop', edit: 'Edit', del: 'Delete', cancel: 'Cancel', saveBtn: 'Save', savedOk: 'Saved.',
@@ -130,7 +138,7 @@ const STR = {
     clearHistory: 'Clear listening history', clearHistoryText: 'Forget what you played, your progress and finished marks.', reset: 'Reset library',
     resetText: 'Empty the whole library: items, history, saved and chat. Your sources stay; sync them to rebuild.', resetOk: 'Reset everything', done: 'Done',
     openData: 'Open data folder', dataFolder: 'Data folder', settingsFile: 'Settings file', database: 'Database',
-    statLectures: 'lectures', statSeries: 'series', statQuran: 'recitations', statSpeakers: 'speakers', statFiles: 'files', statHours: 'hours of audio/video', statDb: 'database',
+    statLectures: 'lectures', statSeries: 'series', statQuran: 'recitations', statFilms: 'films', statSpeakers: 'speakers', statFiles: 'files', statHours: 'hours of audio/video', statDb: 'database',
     // assistant
     asSub: (m) => `Finds picks in your library · ${m} · chat is saved`, asSetupTitle: 'Set up the assistant', asSetupText: 'Add a free Google Gemini API key and the assistant will suggest lectures from your own library.',
     asOpenSettings: 'Open assistant settings', asHello: 'What would you like to listen to?',
@@ -141,11 +149,12 @@ const STR = {
   },
   bn: {
     appName: 'নূর লাইব্রেরি', tagline: 'ইসলামিক মিডিয়া লাইব্রেরি',
-    home: 'হোম', lectures: 'লেকচার', series: 'সিরিজ', quran: 'কুরআন', speakers: 'বক্তা', topics: 'বিষয়',
+    home: 'হোম', lectures: 'লেকচার', series: 'সিরিজ', quran: 'কুরআন', films: 'চলচ্চিত্র ও ডকুমেন্টারি', speakers: 'বক্তা', topics: 'বিষয়',
+    navGroups: { youtube: 'ইউটিউব', quran: 'ক্বারী', web: 'সার্ভার', feed: 'পডকাস্ট', films: 'চলচ্চিত্র', folder: 'এই পিসি' },
     navLibrary: 'লাইব্রেরি', navSources: 'উৎস', saved: 'সংরক্ষিত', recent: 'আবার শুনুন', settings: 'সেটিংস',
     addSource: 'উৎস যোগ করুন', searchPh: 'লেকচার, বক্তা, বিষয় খুঁজুন…',
-    lecture: 'লেকচার', seriesOne: 'সিরিজ', quranOne: 'তিলাওয়াত',
-    nLectures: (n) => `${n}টি লেকচার`, nSeries: (n) => `${n}টি সিরিজ`, nQuran: (n) => `${n}টি তিলাওয়াত`,
+    season: 'সিজন', lecture: 'লেকচার', seriesOne: 'সিরিজ', quranOne: 'তিলাওয়াত', filmOne: 'চলচ্চিত্র',
+    nLectures: (n) => `${n}টি লেকচার`, nSeries: (n) => `${n}টি সিরিজ`, nQuran: (n) => `${n}টি তিলাওয়াত`, nFilms: (n) => `${n}টি চলচ্চিত্র ও ডকুমেন্টারি`,
     nItems: (n) => `${n}টি আইটেম`, nResults: (n) => `${n}টি ফলাফল`, nSpeakers: (n) => `${n} জন বক্তা`,
     nEpisodes: (n) => `${n}টি পর্ব`, nParts: (n) => `${n}টি অংশ`, nSurahs: (n) => `${n}টি সূরা`,
     nLinks: (n) => `${n}টি উৎস`,
@@ -156,13 +165,15 @@ const STR = {
     sortUpdated: 'সম্প্রতি হালনাগাদ', sortSaved: 'সম্প্রতি সংরক্ষিত',
     noMatches: 'কিছু পাওয়া যায়নি', noMatchesText: 'এই ফিল্টারে কিছু মেলে না।', clearFilters: 'ফিল্টার মুছুন',
     emptyTitle: 'আপনার লাইব্রেরি খালি', emptyText: 'শুরু করতে সার্ভারের ফোল্ডার, এই পিসির ফোল্ডার, ইউটিউব চ্যানেল বা পডকাস্ট ফিড যোগ করুন।',
+    jobPhase: { starting: 'শুরু হচ্ছে', syncing: 'সিঙ্ক হচ্ছে', organising: 'সাজানো হচ্ছে' }, nFiles: (n) => `${num(n)}টি ফাইল`, nFolders: (n) => `${num(n)}টি ফোল্ডার`,
     syncingTitle: 'উৎসগুলো সিঙ্ক হচ্ছে…', syncingText: 'প্রতিটি উৎস শেষ হলেই আইটেম দেখা যাবে।',
     nothingYet: 'এখনও কিছু নেই', nothingYetText: 'লাইব্রেরি ভরাতে উৎসগুলো সিঙ্ক করুন।', syncNow: 'এখন সিঙ্ক করুন',
     welcomeTitle: 'নূর লাইব্রেরিতে স্বাগতম', welcomeText: 'আপনার সার্ভার, ফোল্ডার, ইউটিউব চ্যানেল ও পডকাস্টের লেকচার, সিরিজ ও কুরআন তিলাওয়াত — এক জায়গায়।',
     ayahTr: '“পড়ো তোমার প্রতিপালকের নামে, যিনি সৃষ্টি করেছেন।” (সূরা আল-আলাক ৯৬:১)', startAdd: 'প্রথম উৎস যোগ করুন',
-    rowContinue: 'আবার শুনুন', rowLectures: 'নতুন লেকচার', rowSeries: 'সিরিজ', rowQuran: 'কুরআন তিলাওয়াত', rowSaved: 'পরে শোনার জন্য সংরক্ষিত',
+    rowContinue: 'আবার শুনুন', rowLectures: 'নতুন লেকচার', rowSeries: 'সিরিজ', rowQuran: 'কুরআন তিলাওয়াত', rowFilms: 'চলচ্চিত্র ও ডকুমেন্টারি', rowSaved: 'পরে শোনার জন্য সংরক্ষিত',
     rowSpeakers: 'বক্তা', rowTopics: 'বিষয় অনুযায়ী দেখুন', rowTopic: (t) => t,
     play: 'চালান', resume: 'আবার শুরু', playAll: 'সব চালান', playFrom: (x) => `${x} চালান`, save: 'সংরক্ষণ', saveOn: 'সংরক্ষিত', openFolder: 'ফোল্ডার খুলুন',
+    nViews: (n) => `${compact(n)} বার দেখা`, autoplay: 'অটোপ্লে', moreFrom: (x) => `${x} থেকে আরও`, copyLink: 'লিংক কপি করুন', linkCopied: 'লিংক কপি হয়েছে', episodeOf: (n, m) => `পর্ব ${n} / ${m}`, openPlayer: 'প্লেয়ার খুলুন', sortPopular: 'সবচেয়ে বেশি দেখা',
     openYouTube: 'ইউটিউবে খুলুন', openIn: (p) => `${p}-এ খুলুন`, inPlayer: 'বাইরের প্লেয়ার', watchHere: 'এখানে চালান',
     upNext: 'পরবর্তী', part: 'অংশ', episode: 'পর্ব', surah: 'সূরা', verses: (n) => `${n} আয়াত`, makki: 'মাক্কী', madani: 'মাদানী',
     markWatched: 'শেষ হয়েছে চিহ্নিত করুন', markUnwatched: 'শেষ হয়নি চিহ্নিত করুন', more: 'আরও', less: 'কম', minLeft: (m) => `${m} মিনিট বাকি`,
@@ -177,8 +188,8 @@ const STR = {
     location: 'লিংক বা ফোল্ডার', locationHint: 'ভেতরের সবকিছু স্ক্যান করা হবে।', type: 'ধরন', name: 'নাম', nameHint: 'সাইডবারে দেখাবে।',
     speakerField: 'বক্তা (ঐচ্ছিক)', speakerHint: 'যে উৎসে একজনই বক্তা।', speakerFolders: 'ভেতরের ফোল্ডারগুলো বক্তাদের নাম (বক্তা/লেকচার.mp3)',
     checkLink: 'লিংক যাচাই', addAndSync: 'যোগ করে সিঙ্ক করুন', checking: 'যাচাই হচ্ছে…',
-    kindLectures: 'লেকচার', kindSeries: 'সিরিজ', kindQuran: 'কুরআন',
-    kindHint: { lectures: 'প্রতিটি ফাইল (বা ফোল্ডার) একটি লেকচার', series: 'ক্রমিক অংশ বা পর্বের ফোল্ডার', quran: 'ক্বারীর ফোল্ডারে সূরার ফাইল' },
+    kindLectures: 'লেকচার', kindSeries: 'সিরিজ', kindQuran: 'কুরআন', kindFilms: 'চলচ্চিত্র',
+    kindHint: { lectures: 'প্রতিটি ফাইল (বা ফোল্ডার) একটি লেকচার', series: 'ক্রমিক অংশ বা পর্বের ফোল্ডার', quran: 'ক্বারীর ফোল্ডারে সূরার ফাইল' , films: 'প্রতিটি চলচ্চিত্র বা ডকুমেন্টারির আলাদা ফোল্ডার' },
     checkOk: (o, n, f) => `✓ ${o}: ${n}${f ? `, ${f}টি ফোল্ডার` : ''}।`, originNames: { web: 'সার্ভারের ফোল্ডার', folder: 'এই পিসির ফোল্ডার', youtube: 'ইউটিউব', feed: 'পডকাস্ট ফিড' },
     looksLike: (k) => `মনে হচ্ছে: ${k}।`, added: (n) => `“${n}” যোগ হয়েছে। এখন সিঙ্ক হচ্ছে — শেষ হলে আইটেম দেখা যাবে।`,
     yourSources: 'আপনার উৎসসমূহ', fullRescan: 'সম্পূর্ণ রিস্ক্যান', syncAll: 'সব সিঙ্ক', syncing: 'সিঙ্ক হচ্ছে…', sync: 'সিঙ্ক', stop: 'থামান', edit: 'সম্পাদনা', del: 'মুছুন', cancel: 'বাতিল', saveBtn: 'সংরক্ষণ', savedOk: 'সংরক্ষিত হয়েছে।',
@@ -203,7 +214,7 @@ const STR = {
     clearHistory: 'শোনার ইতিহাস মুছুন', clearHistoryText: 'যা শুনেছেন, অগ্রগতি ও শেষ-চিহ্ন মুছে যাবে।', reset: 'লাইব্রেরি রিসেট',
     resetText: 'পুরো লাইব্রেরি খালি হবে: আইটেম, ইতিহাস, সংরক্ষিত ও চ্যাট। উৎসগুলো থাকবে; আবার সিঙ্ক করলে তৈরি হবে।', resetOk: 'সব রিসেট করুন', done: 'সম্পন্ন',
     openData: 'ডেটা ফোল্ডার খুলুন', dataFolder: 'ডেটা ফোল্ডার', settingsFile: 'সেটিংস ফাইল', database: 'ডেটাবেস',
-    statLectures: 'লেকচার', statSeries: 'সিরিজ', statQuran: 'তিলাওয়াত', statSpeakers: 'বক্তা', statFiles: 'ফাইল', statHours: 'ঘণ্টা অডিও/ভিডিও', statDb: 'ডেটাবেস',
+    statLectures: 'লেকচার', statSeries: 'সিরিজ', statQuran: 'তিলাওয়াত', statFilms: 'চলচ্চিত্র', statSpeakers: 'বক্তা', statFiles: 'ফাইল', statHours: 'ঘণ্টা অডিও/ভিডিও', statDb: 'ডেটাবেস',
     asSub: (m) => `আপনার লাইব্রেরি থেকে খুঁজে দেয় · ${m} · চ্যাট সংরক্ষিত থাকে`, asSetupTitle: 'সহকারী চালু করুন', asSetupText: 'একটি ফ্রি Google Gemini API কী দিন, সহকারী আপনার লাইব্রেরি থেকে লেকচার সাজেস্ট করবে।',
     asOpenSettings: 'সহকারীর সেটিংস খুলুন', asHello: 'আজ কী শুনতে চান?',
     asHelloText: (l, s, q) => `বিষয়, বক্তা, সময় বা মন অনুযায়ী জিজ্ঞেস করুন। আপনার ${l}টি লেকচার, ${s}টি সিরিজ ও ${q}টি তিলাওয়াত থেকে বেছে দেব।`,
@@ -420,19 +431,48 @@ function renderSidebar() {
     navItem('#/lectures', 'mic', t('lectures'), c.lectures),
     navItem('#/series', 'layers', t('series'), c.series),
     navItem('#/quran', 'book', t('quran'), c.quran),
+    c.films ? navItem('#/films', 'film', t('films'), c.films) : null,
     navItem('#/speakers', 'users', t('speakers'), c.speakers),
     navItem('#/topics', 'tag', t('topics')));
   fill($('#nav-library'),
     navItem('#/saved', 'bookmark', t('saved'), c.saved),
     navItem('#/recent', 'history', t('recent'), c.recent));
   const sources = app.state?.sources || [];
-  fill($('#nav-sources'), sources.length ? sources.map((s) => {
+  const sourceItem = (s) => {
     const a = navItem('#/source/' + encodeURIComponent(s.name), ORIGIN_ICON[s.origin] || 'folder', s.name, s.count,
       s.syncing ? h('span', { class: 'nav-dot' }) : null);
     a.classList.add('small');
     a.title = s.name;
     return a;
-  }) : h('a', { class: 'nav-item small', href: '#/settings/sources' }, icon('plus'), h('span', { class: 'label', text: t('addSource') })));
+  };
+  let list;
+  if (!sources.length) {
+    list = h('a', { class: 'nav-item small', href: '#/settings/sources' }, icon('plus'), h('span', { class: 'label', text: t('addSource') }));
+  } else if (sources.length <= 8) {
+    list = sources.map(sourceItem);
+  } else {
+    // Many sources: one collapsible group per type, so the list stays short.
+    const groupOf = (s) => s.kind === 'quran' ? 'quran' : s.kind === 'films' ? 'films' : s.origin;
+    let open = new Set();
+    try { open = new Set(JSON.parse(localStorage.getItem('noor.navGroups') || '[]')); } catch { /* ignore */ }
+    const current = decodeURIComponent((location.hash.match(/^#\/source\/(.+)$/) || [])[1] || '');
+    list = ['youtube', 'quran', 'web', 'feed', 'films', 'folder'].map((g) => {
+      const members = sources.filter((s) => groupOf(s) === g);
+      if (!members.length) return null;
+      const isOpen = open.has(g) || members.some((s) => s.name === current);
+      const head = h('button', {
+        class: 'nav-item small nav-group' + (isOpen ? ' open' : ''),
+        onclick() {
+          open.has(g) ? open.delete(g) : open.add(g);
+          try { localStorage.setItem('noor.navGroups', JSON.stringify([...open])); } catch { /* ignore */ }
+          renderSidebar();
+        },
+      }, icon(g === 'quran' ? 'book' : g === 'films' ? 'film' : ORIGIN_ICON[g] || 'folder'), h('span', { class: 'label', text: t('navGroups')[g] }),
+        h('span', { class: 'count', text: num(members.length) }), icon('chevronRight'));
+      return [head, isOpen ? h('div', { class: 'nav-group-items' }, members.map(sourceItem)) : null];
+    });
+  }
+  fill($('#nav-sources'), list);
   fill($('#nav-bottom'), navItem('#/settings/sources', 'sliders', t('settings')));
   markActiveNav();
 }
@@ -479,6 +519,12 @@ function renderJob() {
   if (!busy) { progress.classList.remove('indeterminate'); $('#progress-bar').style.width = '0'; return; }
   let text = job.label || '…';
   if (job.detail) text += ' · ' + job.detail;
+  if (job.current_root && job.phase) {
+    const bits = [job.current_root, t('jobPhase')[job.phase] || job.phase];
+    if (job.files) bits.push(t('nFiles', job.files));
+    if (job.dirs > 1) bits.push(t('nFolders', job.dirs));
+    text = bits.join(' · ');
+  }
   if (job.queued_roots.length) text += ` (+${num(job.queued_roots.length)})`;
   $('#job-text').textContent = text;
   if (job.total) { progress.classList.remove('indeterminate'); $('#progress-bar').style.width = `${Math.round((100 * (job.done || 0)) / job.total)}%`; }
@@ -491,6 +537,8 @@ const routes = [
   [/^#\/lectures$/, () => gridPage({ kind: 'lecture', title: t('lectures'), noun: 'nLectures', sorts: 'lecture' })],
   [/^#\/series$/, () => gridPage({ kind: 'series', title: t('series'), noun: 'nSeries', sorts: 'series' })],
   [/^#\/quran$/, () => gridPage({ kind: 'quran', title: t('quran'), noun: 'nQuran', sorts: 'quran' })],
+  [/^#\/films$/, () => gridPage({ kind: 'film', title: t('films'), noun: 'nFilms', sorts: 'lecture' })],
+  [/^#\/watch\/(\d+)(?:\/(\d+))?$/, (m) => watchPage(Number(m[1]), m[2] ? Number(m[2]) : null)],
   [/^#\/speakers$/, () => speakersPage()],
   [/^#\/speaker\/(.+)$/, (m) => speakerPage(decodeURIComponent(m[1]))],
   [/^#\/topics$/, () => topicsPage()],
@@ -543,6 +591,7 @@ function kindBadge(c) {
   if (c.media === 'youtube') return h('span', { class: 'badge yt' }, icon('youtube'), 'YouTube');
   if (c.kind === 'series') return h('span', { class: 'badge series', text: `${t('seriesOne')} · ${num(c.file_count)}` });
   if (c.kind === 'quran') return h('span', { class: 'badge quran', text: t('quranOne') });
+  if (c.kind === 'film') return h('span', { class: 'badge series', text: c.file_count > 1 ? `${t('filmOne')} · ${num(c.file_count)}` : t('filmOne') });
   return null;
 }
 function cardMeta(c) {
@@ -551,7 +600,9 @@ function cardMeta(c) {
   if (c.kind === 'series') bits.push(t('nEpisodes', c.file_count));
   else if (c.kind === 'quran') bits.push(t('nSurahs', c.file_count));
   else if (c.file_count > 1) bits.push(t('nParts', c.file_count));
-  if (c.language && c.language !== lang) bits.push(langName(c.language));
+  if (c.media === 'youtube' && c.views != null) bits.push(t('nViews', c.views));
+  if (c.media === 'youtube' && c.file_count === 1) bits.push(since(c.added_at));
+  else if (c.language && c.language !== lang) bits.push(langName(c.language));
   return bits.join(' · ');
 }
 function card(c) {
@@ -566,7 +617,7 @@ function card(c) {
   }, icon('bookmark'));
   const playBtn = h('button', { class: 'round-play', title: t('play'), onclick(e) { e.stopPropagation(); quickPlay(c.id); } }, icon('play'));
   const dur = c.total_duration && c.kind === 'lecture' ? h('span', { class: 'duration', text: clock(c.total_duration) }) : null;
-  return h('div', { class: 'card', onclick: () => go('#/title/' + c.id) },
+  return h('div', { class: 'card', onclick: () => go(isYouTubeTitle(c) ? '#/watch/' + c.id : '#/title/' + c.id) },
     h('div', { class: 'thumb' }, art(c), h('div', { class: 'badges' }, kindBadge(c)), dur,
       c.progress ? h('div', { class: 'bar' }, h('i', { style: `width:${Math.min(100, Math.round(c.progress * 100))}%` })) : null,
       h('div', { class: 'hover-actions' }, playBtn, mark)),
@@ -598,10 +649,10 @@ async function quickPlay(titleId) {
 
 // ------------------------------------------------------------- grids
 const SORTS = {
-  lecture: [['added', 'sortNewest'], ['oldest', 'sortOldest'], ['title', 'sortTitle'], ['longest', 'sortLongest'], ['shortest', 'sortShortest']],
+  lecture: [['added', 'sortNewest'], ['popular', 'sortPopular'], ['oldest', 'sortOldest'], ['title', 'sortTitle'], ['longest', 'sortLongest'], ['shortest', 'sortShortest']],
   series: [['updated', 'sortUpdated'], ['added', 'sortNewest'], ['title', 'sortTitle']],
   quran: [['title', 'sortTitle'], ['added', 'sortNewest']],
-  mixed: [['added', 'sortNewest'], ['title', 'sortTitle'], ['longest', 'sortLongest'], ['shortest', 'sortShortest']],
+  mixed: [['added', 'sortNewest'], ['popular', 'sortPopular'], ['title', 'sortTitle'], ['longest', 'sortLongest'], ['shortest', 'sortShortest']],
   saved: [['watchlist', 'sortSaved'], ['added', 'sortNewest'], ['title', 'sortTitle']],
 };
 function selectBox(options, value, onchange, placeholderLabel) {
@@ -643,7 +694,7 @@ async function gridPage(o) {
     let f;
     try { f = await GET('/api/facets?' + qs(base())); } catch { return; }
     const lists = {
-      kind: [['lecture', t('lectures')], ['series', t('series')], ['quran', t('quran')]],
+      kind: [['lecture', t('lectures')], ['series', t('series')], ['quran', t('quran')], ['film', t('films')]],
       speaker: f.speakers.map((x) => [x.value, `${x.value} (${num(x.count)})`]),
       topic: f.topics.map((x) => [x.value, `${topicName(x.value)} (${num(x.count)})`]),
       language: f.languages.map((x) => [x.value, `${langName(x.value)} (${num(x.count)})`]),
@@ -709,7 +760,7 @@ function libraryEmpty() {
 
 function sourcePage(name) {
   const src = app.state?.sources?.find((s) => s.name === name);
-  const kind = src ? { lectures: 'lecture', series: 'series', quran: 'quran' }[src.kind] : undefined;
+  const kind = src ? { lectures: 'lecture', series: 'series', quran: 'quran', films: 'film' }[src.kind] : undefined;
   const head = h('div', { class: 'actions' },
     h('button', { class: 'btn', async onclick() { await POST(`/api/sources/${encodeURIComponent(name)}/sync`).catch((e) => toast(e.message, true)); refreshState(); } }, icon('sync'), t('sync')),
     h('a', { class: 'btn ghost', href: '#/settings/sources' }, icon('sliders'), t('settings')));
@@ -767,7 +818,7 @@ async function homePage() {
   if (!app.state?.sources?.length) { wrap.append(welcome()); return; }
   const [{ rows }, sp, facets] = await Promise.all([GET('/api/home'), GET('/api/speakers').catch(() => ({ speakers: [] })), GET('/api/facets').catch(() => null)]);
   if (!rows.length) { wrap.append(libraryEmpty()); return { refresh: () => route() }; }
-  const rowTitle = (k) => k.startsWith('topic:') ? topicName(k.slice(6)) : t({ continue: 'rowContinue', lectures: 'rowLectures', series: 'rowSeries', quran: 'rowQuran', saved: 'rowSaved' }[k] || k);
+  const rowTitle = (k) => k.startsWith('topic:') ? topicName(k.slice(6)) : t({ continue: 'rowContinue', lectures: 'rowLectures', series: 'rowSeries', quran: 'rowQuran', films: 'rowFilms', saved: 'rowSaved' }[k] || k);
   const head = (title, link) => h('div', { class: 'row-head' }, h('h2', { text: title }), link && h('a', { href: link, text: t('seeAll') }));
   const ordered = [...rows];
   for (const r of ordered.splice(0, Math.min(2, ordered.length))) wrap.append(head(rowTitle(r.key), r.link), h('div', { class: 'strip' }, r.items.map(card)));
@@ -788,8 +839,8 @@ function welcome() {
 // ------------------------------------------------------------ detail
 async function detailPage(id) {
   const d = await GET('/api/titles/' + id);
-  const kindName = { lecture: t('lectures'), series: t('series'), quran: t('quran') }[d.kind];
-  const listHash = { lecture: '#/lectures', series: '#/series', quran: '#/quran' }[d.kind];
+  const kindName = { lecture: t('lectures'), series: t('series'), quran: t('quran'), film: t('films') }[d.kind];
+  const listHash = { lecture: '#/lectures', series: '#/series', quran: '#/quran', film: '#/films' }[d.kind];
   const next = d.items.find((i) => i.file_id === d.next_up);
   const started = next && next.position > 30;
 
@@ -801,7 +852,7 @@ async function detailPage(id) {
       try { await POST('/api/watchlist', { title_id: d.id, on: d.saved }); refreshState(); toast(d.saved ? t('saveOn') : t('save')); } catch (e) { toast(e.message, true); }
     },
   }, icon('bookmark'));
-  const playLabel = d.kind === 'lecture' && d.items.length <= 1
+  const playLabel = (d.kind === 'lecture' || d.kind === 'film') && d.items.length <= 1
     ? (started ? t('resume') : t('play'))
     : started ? t('resume') : t('playFrom', next ? itemCode(d, next) : '');
   const isYt = d.media === 'youtube';
@@ -813,10 +864,10 @@ async function detailPage(id) {
       : h('button', { class: 'btn big square', title: t('openFolder'), async onclick() { try { await POST('/api/open-folder', { title_id: d.id }); } catch (e) { toast(e.message, true); } } }, icon('folder')));
 
   const meta = h('div', { class: 'meta-row' },
-    d.kind !== 'lecture' && h('span', { class: 'chip ' + (d.kind === 'quran' ? 'green' : 'gold'), text: d.kind === 'quran' ? t('quranOne') : t('seriesOne') }),
+    d.kind !== 'lecture' && h('span', { class: 'chip ' + (d.kind === 'quran' ? 'green' : 'gold'), text: { quran: t('quranOne'), film: t('filmOne') }[d.kind] || t('seriesOne') }),
     d.kind === 'series' && h('span', { text: t('nEpisodes', d.items.length) }),
     d.kind === 'quran' && h('span', { text: t('nSurahs', d.items.length) }),
-    d.kind === 'lecture' && d.items.length > 1 && h('span', { text: t('nParts', d.items.length) }),
+    (d.kind === 'lecture' || d.kind === 'film') && d.items.length > 1 && h('span', { text: t('nParts', d.items.length) }),
     d.total_duration && h('span', { text: human(d.total_duration) }),
     d.language && h('span', { class: 'chip outline', text: langName(d.language) }),
     d.media && h('span', { class: 'chip outline', text: t(d.media) }),
@@ -882,7 +933,7 @@ function itemsView(d) {
     const total = items.reduce((a, i) => a + (i.duration || 0), 0);
     fill(bar,
       seasons && seasons.map((s) => h('button', { class: 'season-pill' + (s.season === current ? ' on' : ''), onclick() { current = s.season; app.detailSeason[d.id] = current; render(); } },
-        `${t('part')} ${digits(s.season)}`, h('small', { text: num(s.items.length) }))),
+        `${d.kind === 'film' ? t('season') : t('part')} ${digits(s.season)}`, h('small', { text: num(s.items.length) }))),
       h('span', { class: 'total', text: [d.kind === 'lecture' ? t('nParts', items.length) : t('nEpisodes', items.length), total && human(total)].filter(Boolean).join(' · ') }));
     fill(list, items.map((it) => itemRow(d, it, items)));
   }
@@ -928,9 +979,17 @@ function surahList(d) {
  *  or an embedded YouTube player, saves the position as it goes and moves
  *  on to the next item. Files the browser can't decode go to VLC. */
 const player = (() => {
-  const st = { d: null, queue: [], i: 0, media: null, yt: null, ytTimer: 0, saveAt: 0, speed: 1, big: false, error: false };
+  const st = { d: null, queue: [], i: 0, media: null, yt: null, ytTimer: 0, saveAt: 0, speed: 1, error: false, anchor: null, detachTimer: 0, onChange: null, onQueueEnd: null };
   try { st.speed = Number(localStorage.getItem('noor.speed')) || 1; } catch { /* ignore */ }
+  try { st.autoplay = localStorage.getItem('noor.autoplay') !== '0'; } catch { st.autoplay = true; }
   const root = $('#player');
+  // Video plays on a stage laid over the watch page's player box, or in the
+  // corner as a mini-player. Moving an iframe in the DOM reloads it, so the
+  // stage itself never moves; only its box changes.
+  const slot = h('div', { class: 'media-slot' });
+  const miniBar = h('div', { class: 'mini-bar' });
+  const stage = h('div', { class: 'stage', hidden: true }, h('div', { class: 'stage-video' }, slot), miniBar);
+  document.body.append(stage);
   const cur = () => st.queue[st.i] || null;
   const SPEEDS = [0.75, 1, 1.25, 1.5, 1.75, 2];
 
@@ -945,6 +1004,9 @@ const player = (() => {
     if (VIDEO_OK.has(e)) return 'video';
     return 'external';
   }
+  const isVideo = (it) => !!it && (modeOf(it) === 'youtube' || modeOf(it) === 'video');
+  const watchHash = (d, it) => `#/watch/${d.id}/${it.file_id}`;
+
   function save(force = false) {
     const it = cur();
     if (!it) return;
@@ -965,9 +1027,12 @@ const player = (() => {
     if (st.media) { st.media.pause(); st.media.removeAttribute('src'); st.media.load(); st.media = null; }
     if (st.yt) { try { st.yt.destroy(); } catch { /* ignore */ } st.yt = null; }
     clearInterval(st.ytTimer);
+    slot.replaceChildren();
   }
 
-  async function start(d, items, index = 0) {
+  /** Plays `items[index]` of title `d`. Video opens the watch page unless
+   *  that page is the caller. */
+  async function start(d, items, index = 0, { fromWatch = false } = {}) {
     if (!items.length) return toast(t('noEpisodes'), true);
     const externalOnly = app.state?.flags?.external_only;
     const it = items[index];
@@ -979,6 +1044,7 @@ const player = (() => {
     teardown();
     st.d = d; st.queue = items; st.i = index;
     load();
+    if (isVideo(it) && !fromWatch && location.hash !== watchHash(d, it)) go(watchHash(d, it));
   }
 
   function load() {
@@ -994,7 +1060,8 @@ const player = (() => {
     render();
     if (mode === 'youtube') loadYouTube(it);
     else {
-      const el = h(mode === 'video' ? 'video' : 'audio', { preload: 'auto', playsinline: true });
+      const video = mode === 'video';
+      const el = h(video ? 'video' : 'audio', { preload: 'auto', playsinline: true, controls: video });
       st.media = el;
       el.playbackRate = st.speed;
       el.addEventListener('loadedmetadata', () => {
@@ -1008,10 +1075,15 @@ const player = (() => {
       el.addEventListener('ended', () => { markDone(it); next(); });
       el.addEventListener('error', () => showError(it));
       el.src = srcOf(it);
-      root.querySelector('.media-slot')?.replaceChildren(el);
+      slot.replaceChildren(el);
       el.play().catch(() => {});
     }
+    // Keep the address in step when the queue moves on inside the watch page.
+    if (isVideo(it) && location.hash.startsWith('#/watch/') && location.hash !== watchHash(st.d, it)) {
+      history.replaceState(null, '', watchHash(st.d, it));
+    }
     highlight();
+    st.onChange?.(it);
   }
 
   function markDone(it) {
@@ -1032,14 +1104,14 @@ const player = (() => {
     });
   }
   async function loadYouTube(it) {
-    const slot = root.querySelector('.media-slot');
     const holder = h('div', { class: 'yt' });
     slot.replaceChildren(holder);
     try { await ensureYtApi(); } catch { return showError(it, true); }
     if (cur() !== it) return;
     st.yt = new window.YT.Player(holder, {
+      width: '100%', height: '100%',
       videoId: ytId(it.url),
-      playerVars: { autoplay: 1, rel: 0, modestbranding: 1, start: it.position > 5 ? Math.floor(it.position) : 0, origin: location.origin },
+      playerVars: { autoplay: 1, rel: 0, modestbranding: 1, playsinline: 1, iv_load_policy: 3, start: it.position > 5 ? Math.floor(it.position) : 0, origin: location.origin },
       events: {
         onReady: (e) => { try { e.target.setPlaybackRate(st.speed); } catch { /* some videos fix the rate */ } updateButtons(); },
         onStateChange: (e) => {
@@ -1056,8 +1128,6 @@ const player = (() => {
   function showError(it, youtube = false) {
     if (cur() !== it) return;
     st.error = true;
-    root.classList.add('has-video');
-    const slot = root.querySelector('.media-slot');
     slot.append(h('div', { class: 'media-error' }, h('div', {},
       h('p', { text: youtube ? t('openYouTube') : t('cantPlayHere') }),
       h('div', { class: 'actions', style: 'justify-content:center' },
@@ -1067,8 +1137,12 @@ const player = (() => {
   }
 
   function next() {
-    if (st.i + 1 < st.queue.length) { st.i++; load(); }
-    else { save(true); updateButtons(); refreshDetail(st.d?.id); }
+    if (st.i + 1 < st.queue.length) { st.i++; load(); return; }
+    save(true);
+    updateButtons();
+    // End of the queue: the watch page may offer something more.
+    if (st.autoplay && st.onQueueEnd?.()) return;
+    refreshDetail(st.d?.id);
   }
   function prev() {
     const pos = st.media ? st.media.currentTime : st.yt?.getCurrentTime?.() || 0;
@@ -1101,35 +1175,77 @@ const player = (() => {
     const b = root.querySelector('.speed');
     if (b) b.textContent = digits(st.speed) + '×';
   }
+  function setAutoplay(on) {
+    st.autoplay = on;
+    try { localStorage.setItem('noor.autoplay', on ? '1' : '0'); } catch { /* ignore */ }
+  }
   function close() {
     teardown();
     st.d = null; st.queue = [];
     root.hidden = true;
-    document.body.classList.remove('playing');
+    layout();
     highlight();
+    st.onChange?.(null);
   }
 
+  // -------------------------------------------------- stage placement
+  const resize = new ResizeObserver(() => layout());
+  function attach(el) {
+    clearTimeout(st.detachTimer);
+    st.anchor = el;
+    resize.disconnect();
+    resize.observe(el);
+    layout();
+  }
+  function detach(el) {
+    if (st.anchor !== el) return;
+    st.anchor = null;
+    resize.disconnect();
+    // The next page may be another watch page; give it a moment to claim
+    // the stage before shrinking to the corner.
+    st.detachTimer = setTimeout(layout, 250);
+  }
+  function layout() {
+    const it = cur();
+    const video = isVideo(it);
+    stage.hidden = !video;
+    if (video) root.hidden = true;
+    document.body.classList.toggle('playing', !!it && !video);
+    const docked = video && st.anchor?.isConnected;
+    document.body.classList.toggle('mini-playing', video && !docked);
+    if (!video) return;
+    stage.classList.toggle('mini', !docked);
+    if (!docked) { stage.style.cssText = ''; renderMini(); return; }
+    const r = st.anchor.getBoundingClientRect();
+    const view = page.getBoundingClientRect();
+    const top = Math.max(0, view.top - r.top), bottom = Math.max(0, r.bottom - view.bottom);
+    Object.assign(stage.style, {
+      left: `${r.left}px`, top: `${r.top}px`, width: `${r.width}px`, height: `${r.height}px`,
+      clipPath: top || bottom ? `inset(${top}px 0 ${bottom}px 0 round 14px)` : '',
+      visibility: top + bottom >= r.height ? 'hidden' : '',
+    });
+  }
+  page.addEventListener('scroll', layout, { passive: true });
+  window.addEventListener('resize', layout);
+
+  // ------------------------------------------------------------ chrome
   let refs = {};
+  /** The bottom bar, for audio. */
   function render() {
     const it = cur();
-    if (!it) { root.hidden = true; return; }
+    if (!it) { root.hidden = true; layout(); return; }
+    layout();
+    if (isVideo(it)) { renderMini(); return; }
     const d = st.d;
-    const video = modeOf(it) !== 'audio';
     root.hidden = false;
-    document.body.classList.add('playing');
-    root.classList.toggle('has-video', video);
-    root.classList.toggle('big', st.big);
     const slider = h('input', { type: 'range', min: 0, max: 1000, value: 0 });
     slider.addEventListener('input', () => { const [, dur] = position(); seek((slider.value / 1000) * dur); });
     const vol = h('input', { type: 'range', class: 'vol', min: 0, max: 100, value: 100 });
-    vol.addEventListener('input', () => { if (st.media) st.media.volume = vol.value / 100; st.yt?.setVolume?.(Number(vol.value)); });
+    vol.addEventListener('input', () => { if (st.media) st.media.volume = vol.value / 100; });
     const playBtn = h('button', { class: 'pbtn main', title: t('play'), onclick: toggle }, icon('pause'));
     refs = { slider, playBtn, cur: h('span', { text: '0:00' }), dur: h('span', { text: clock(it.duration) || '0:00' }) };
     const thumb = it.thumb || d.poster;
-    const slot = h('div', { class: 'media-slot' });
-    if (st.media) slot.append(st.media);
     fill(root,
-      h('div', { class: 'video-wrap' }, slot),
       h('div', { class: 'pbar' },
         h('div', { class: 'pnow', onclick: () => go('#/title/' + d.id) },
           h('div', { class: 'art' }, thumb ? h('img', { src: thumb, alt: '' }) : null),
@@ -1137,7 +1253,7 @@ const player = (() => {
         h('div', { class: 'pcenter' },
           h('div', { class: 'pbuttons' },
             h('button', { class: 'pbtn', title: '−15s', onclick: () => seek(position()[0] - 15) }, icon('back15')),
-            h('button', { class: 'pbtn', onclick: prev, disabled: st.queue.length < 2 && false }, icon('prev')),
+            h('button', { class: 'pbtn', onclick: prev }, icon('prev')),
             playBtn,
             h('button', { class: 'pbtn', onclick: next, disabled: st.i + 1 >= st.queue.length }, icon('next')),
             h('button', { class: 'pbtn', title: '+30s', onclick: () => seek(position()[0] + 30) }, icon('fwd30'))),
@@ -1145,19 +1261,33 @@ const player = (() => {
         h('div', { class: 'pright' },
           h('button', { class: 'speed', title: t('speed'), onclick: setSpeed, text: digits(st.speed) + '×' }),
           icon('volume'), vol,
-          video && h('button', { class: 'pbtn', title: '', onclick() { st.big = !st.big; root.classList.toggle('big', st.big); this.replaceChildren(icon(st.big ? 'shrink' : 'expand')); } }, icon(st.big ? 'shrink' : 'expand')),
-          h('button', { class: 'pbtn', title: t('inPlayer'), onclick: () => POST('/api/play', { file_id: it.file_id }).then(() => toast(ytId(it.url) ? t('openedYouTube') : t('opening', it.label, playerName()))).catch((e) => toast(e.message, true)) }, icon('external')),
+          h('button', { class: 'pbtn', title: t('inPlayer'), onclick: () => POST('/api/play', { file_id: it.file_id }).then(() => toast(t('opening', it.label, playerName()))).catch((e) => toast(e.message, true)) }, icon('external')),
           h('button', { class: 'pbtn', title: t('close'), onclick: close }, icon('x')))));
     updateButtons();
   }
+  /** The strip under the corner mini-player. */
+  function renderMini() {
+    const it = cur();
+    if (!it || !st.d) return;
+    const d = st.d;
+    refs.miniPlay = h('button', { class: 'pbtn', title: t('play'), onclick: toggle }, icon(paused() ? 'play' : 'pause'));
+    fill(miniBar,
+      h('div', { class: 'mini-txt', onclick: () => go(watchHash(d, it)) },
+        h('b', { text: it.label || d.name }), h('span', { text: d.speaker || d.source_title || d.name })),
+      refs.miniPlay,
+      st.queue.length > 1 && h('button', { class: 'pbtn', onclick: next, disabled: st.i + 1 >= st.queue.length }, icon('next')),
+      h('button', { class: 'pbtn', title: t('openPlayer'), onclick: () => go(watchHash(d, it)) }, icon('expand')),
+      h('button', { class: 'pbtn', title: t('close'), onclick: close }, icon('x')));
+  }
   function updateTime() {
-    if (!refs.slider) return;
+    if (!refs.slider || !refs.slider.isConnected) return;
     const [pos, dur] = position();
     refs.cur.textContent = clock(pos);
     if (dur) { refs.dur.textContent = clock(dur); refs.slider.value = Math.round((pos / dur) * 1000); }
   }
   function updateButtons() {
     if (refs.playBtn) refs.playBtn.replaceChildren(icon(paused() ? 'play' : 'pause'));
+    if (refs.miniPlay) refs.miniPlay.replaceChildren(icon(paused() ? 'play' : 'pause'));
   }
   function highlight() {
     const id = cur()?.file_id;
@@ -1167,14 +1297,143 @@ const player = (() => {
   }
 
   document.addEventListener('keydown', (e) => {
-    if (root.hidden || /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
+    if (!cur() || /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
     if (e.code === 'Space') { e.preventDefault(); toggle(); }
     else if (e.key === 'ArrowRight') seek(position()[0] + 10);
     else if (e.key === 'ArrowLeft') seek(position()[0] - 10);
   });
   window.addEventListener('beforeunload', () => save(true));
-  return { start, current: cur, render: () => { if (cur()) render(); } };
+  return {
+    start, current: cur, title: () => st.d, attach, detach, setAutoplay,
+    autoplay: () => st.autoplay,
+    set onChange(f) { st.onChange = f; },
+    set onQueueEnd(f) { st.onQueueEnd = f; },
+    render: () => { if (cur()) render(); },
+  };
 })();
+
+// ------------------------------------------------------------- watch
+/** "1.2M" / "১২ লা". */
+const compact = (n) => new Intl.NumberFormat(lang === 'bn' ? 'bn-BD' : 'en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(n);
+/** "3 years ago", from a unix time. */
+function since(ts) {
+  if (!ts) return '';
+  const s = Date.now() / 1000 - ts;
+  const rtf = new Intl.RelativeTimeFormat(lang === 'bn' ? 'bn' : 'en', { numeric: 'auto' });
+  for (const [unit, secs] of [['year', 31536000], ['month', 2592000], ['week', 604800], ['day', 86400], ['hour', 3600], ['minute', 60]]) {
+    if (s >= secs) return rtf.format(-Math.floor(s / secs), unit);
+  }
+  return rtf.format(0, 'minute');
+}
+const isYouTubeTitle = (c) => c.media === 'youtube' && c.file_count === 1;
+
+async function watchPage(titleId, fileId) {
+  const d = await GET('/api/titles/' + titleId);
+  const pick = () => d.items.find((i) => i.file_id === fileId) || d.items.find((i) => i.file_id === d.next_up) || d.items[0];
+  if (!pick()) { page.append(emptyState('info', t('noEpisodes'), '')); return null; }
+  const playing = player.current();
+  let it = playing && player.title()?.id === d.id ? playing : pick();
+  if (!playing || playing.file_id !== it.file_id) player.start(d, d.items, d.items.indexOf(it), { fromWatch: true });
+
+  const box = h('div', { class: 'watch-player' });
+  const info = h('div', { class: 'watch-info' });
+  const side = h('aside', { class: 'watch-side' });
+  page.append(h('div', { class: 'watch' }, h('div', { class: 'watch-main' }, box, info), side));
+  player.attach(box);
+
+  // More from the same speaker (or source), for the side list and autoplay.
+  const more = [];
+  const moreQuery = d.speaker ? { speaker: d.speaker } : { root: d.root };
+  GET('/api/titles?' + qs({ ...moreQuery, sort: 'added', limit: 30 })).then((r) => {
+    more.push(...r.items.filter((c) => c.id !== d.id));
+    renderSide();
+  }).catch(() => {});
+
+  function renderBox() {
+    const poster = it.thumb || d.poster;
+    fill(box,
+      poster ? h('img', { src: poster, alt: '' }) : null,
+      h('button', { class: 'watch-replay', title: t('play'), onclick: () => player.start(d, d.items, d.items.indexOf(it), { fromWatch: true }) }, icon('play')));
+  }
+  function renderInfo() {
+    const series = d.items.length > 1;
+    const channel = d.speaker || d.source_title || d.root;
+    const channelImg = d.media === 'youtube' && (!d.speaker || d.speaker === d.source_title) ? d.source_image : d.speaker_image || d.source_image;
+    const mark = h('button', {
+      class: 'pill' + (d.saved ? ' on' : ''),
+      async onclick() {
+        d.saved = !d.saved;
+        mark.classList.toggle('on', d.saved);
+        try { await POST('/api/watchlist', { title_id: d.id, on: d.saved }); refreshState(); toast(d.saved ? t('saveOn') : t('save')); } catch (e) { toast(e.message, true); }
+      },
+    }, icon('bookmark'), t('save'));
+    const yt = ytId(it.url);
+    const statLine = [it.views != null && t('nViews', it.views), since(it.published_at)].filter(Boolean).join('  ·  ');
+    const desc = it.description || d.description;
+    const descEl = desc ? h('div', { class: 'watch-desc-text', text: desc }) : null;
+    const moreBtn = desc && desc.length > 240 ? h('button', { class: 'link', text: t('more'), onclick() { descEl.classList.toggle('open'); this.textContent = descEl.classList.contains('open') ? t('less') : t('more'); } }) : null;
+    fill(info,
+      h('h1', { class: 'watch-title', text: it.label || d.name }),
+      h('div', { class: 'watch-row' },
+        h('a', { class: 'watch-channel', href: d.speaker ? '#/speaker/' + encodeURIComponent(d.speaker) : '#/source/' + encodeURIComponent(d.root) },
+          avatar(channel, channelImg),
+          h('div', {}, h('b', { text: channel }), h('span', { text: d.source_title && d.source_title !== channel ? d.source_title : series ? t('episodeOf', digits(d.items.indexOf(it) + 1), digits(d.items.length)) : t(d.kind === 'film' ? 'filmOne' : 'lecture') }))),
+        h('div', { class: 'watch-actions' },
+          it.likes != null && h('span', { class: 'pill stat' }, icon('thumbsUp'), compact(it.likes)),
+          it.comments != null && h('span', { class: 'pill stat' }, icon('comment'), compact(it.comments)),
+          mark,
+          yt ? h('button', { class: 'pill', onclick: () => POST('/api/play', { file_id: it.file_id }).then(() => toast(t('openedYouTube'))) }, icon('youtube'), 'YouTube')
+            : h('button', { class: 'pill', onclick: () => POST('/api/play', { file_id: it.file_id }).then(() => toast(t('opening', it.label, playerName()))).catch((e) => toast(e.message, true)) }, icon('external'), playerName()),
+          yt && h('button', { class: 'pill square', title: t('copyLink'), onclick: () => navigator.clipboard.writeText(it.url).then(() => toast(t('linkCopied'))).catch(() => toast(it.url)) }, icon('link')))),
+      h('div', { class: 'watch-desc' },
+        statLine && h('div', { class: 'watch-stats', text: statLine }),
+        d.topics.length ? h('div', { class: 'genres' }, d.topics.map((k) => h('a', { class: 'chip-link', href: '#/topic/' + encodeURIComponent(k), text: topicName(k) })),
+          d.language && h('span', { class: 'chip outline', text: langName(d.language) })) : null,
+        descEl, moreBtn));
+  }
+  function sideRow(thumb, title, sub, dur, prog, onclick, on = false) {
+    return h('div', { class: 'up-row' + (on ? ' on' : ''), onclick },
+      h('div', { class: 'up-thumb' }, thumb ? h('img', { src: thumb, alt: '', loading: 'lazy' }) : h('div', { class: 'tile', style: `background:${hashColor(title)}` }),
+        dur ? h('span', { class: 'duration', text: clock(dur) }) : null,
+        prog ? h('div', { class: 'bar' }, h('i', { style: `width:${Math.min(100, Math.round(prog * 100))}%` })) : null),
+      h('div', { class: 'up-txt' }, h('b', { text: title, title }), sub.map((s) => s && h('span', { text: s }))));
+  }
+  function renderSide() {
+    const auto = h('label', { class: 'switch' },
+      h('input', { type: 'checkbox', checked: player.autoplay(), onchange() { player.setAutoplay(this.checked); } }), h('i'), t('autoplay'));
+    const queue = d.items.length > 1 ? h('div', { class: 'up-list' },
+      d.items.map((x, n) => sideRow(x.thumb || d.poster, x.label, [itemCode(d, x), x.views != null && t('nViews', x.views)], x.duration,
+        x.watched ? 1 : x.position && x.duration ? x.position / x.duration : 0,
+        () => player.start(d, d.items, n, { fromWatch: true }), x.file_id === it.file_id))) : null;
+    const others = more.length ? h('div', { class: 'up-list' },
+      more.map((c) => sideRow(c.poster, c.name, [c.speaker && c.speaker !== (d.speaker || '') ? c.speaker : '', [c.views != null && t('nViews', c.views), since(c.added_at)].filter(Boolean).join(' · ')],
+        c.file_count === 1 ? c.total_duration : null, c.progress, () => go(isYouTubeTitle(c) ? '#/watch/' + c.id : '#/title/' + c.id)))) : null;
+    fill(side,
+      h('div', { class: 'up-head' }, h('h3', { text: t('upNext') }), auto),
+      queue,
+      others && h('div', { class: 'up-label', text: t('moreFrom', d.speaker || d.source_title || d.root) }),
+      others);
+    side.querySelector('.up-row.on')?.scrollIntoView({ block: 'nearest' });
+  }
+
+  renderBox();
+  renderInfo();
+  renderSide();
+  player.onChange = (x) => {
+    if (x && player.title()?.id === d.id) { it = x; renderBox(); renderInfo(); renderSide(); }
+  };
+  // At the end of the queue, autoplay moves on to the next talk of the speaker.
+  player.onQueueEnd = () => {
+    const nextTitle = more.find((c) => isYouTubeTitle(c) && !(c.progress >= 0.95));
+    if (!nextTitle) return false;
+    go('#/watch/' + nextTitle.id);
+    return true;
+  };
+  return {
+    cleanup() { player.detach(box); player.onChange = null; player.onQueueEnd = null; },
+    detailId: d.id,
+  };
+}
 
 // ---------------------------------------------------------- settings
 const TABS = [['sources', 'database', 'tabSources'], ['player', 'monitor', 'tabPlayer'], ['youtube', 'youtube', 'tabYouTube'], ['assistant', 'sparkles', 'tabAssistant'], ['language', 'languages', 'tabLanguage'], ['library', 'drive', 'tabLibrary']];
@@ -1208,7 +1467,7 @@ function seg(options, value, onchange) {
 async function pickPath(kind) {
   try { return (await POST('/api/pick', { kind })).path; } catch (e) { toast(e.message, true); return null; }
 }
-const KIND_OPTS = () => [['lectures', t('kindLectures'), 'mic'], ['series', t('kindSeries'), 'layers'], ['quran', t('kindQuran'), 'book']];
+const KIND_OPTS = () => [['lectures', t('kindLectures'), 'mic'], ['series', t('kindSeries'), 'layers'], ['quran', t('kindQuran'), 'book'], ['films', t('kindFilms'), 'film']];
 const msgLine = () => h('div', { class: 'result-line' });
 const setMsg = (el, text, ok) => { el.className = 'result-line ' + (ok ? 'ok' : 'err'); el.textContent = text; };
 
@@ -1231,7 +1490,7 @@ function sourcesTab(body) {
       try {
         const r = await POST('/api/sources/check', { location: loc.value });
         origin = r.origin;
-        const kindLabel = { lectures: t('kindLectures'), series: t('kindSeries'), quran: t('kindQuran') }[r.kind];
+        const kindLabel = { lectures: t('kindLectures'), series: t('kindSeries'), quran: t('kindQuran'), films: t('kindFilms') }[r.kind];
         fill(result, `${t('checkOk', t('originNames')[r.origin], t('nItems', r.items), r.folders || null)} ${t('looksLike', kindLabel)}`,
           r.sample?.length ? h('span', { class: 'sample', text: r.sample.join(' · ') }) : null);
         result.className = 'result-line ok';
@@ -1307,7 +1566,7 @@ function sourcesTab(body) {
     else if (s.status === 'error') when = h('div', { class: 'when err', text: `${ago(s.last_sync)} · ${s.error || 'error'}` });
     else if (s.status === 'stopped') when = h('div', { class: 'when', text: `${ago(s.last_sync)} · ${t('stoppedEarly')}` });
     const enc = encodeURIComponent(s.name);
-    const kindLabel = { lectures: t('kindLectures'), series: t('kindSeries'), quran: t('kindQuran') }[s.kind];
+    const kindLabel = { lectures: t('kindLectures'), series: t('kindSeries'), quran: t('kindQuran'), films: t('kindFilms') }[s.kind];
     const row = h('div', { class: 'source-row' },
       h('div', { class: 'origin ' + s.origin, title: t('originNames')[s.origin] }, icon(ORIGIN_ICON[s.origin] || 'folder')),
       h('div', { class: 'body' },
@@ -1454,7 +1713,7 @@ async function libraryTab(body, s) {
   async function load() {
     const st = await GET('/api/storage');
     const x = st.stats;
-    fill(stats, [[x.lectures, 'statLectures'], [x.series, 'statSeries'], [x.quran, 'statQuran'], [x.speakers, 'statSpeakers'], [x.files, 'statFiles']]
+    fill(stats, [[x.lectures, 'statLectures'], [x.series, 'statSeries'], [x.quran, 'statQuran'], [x.films, 'statFilms'], [x.speakers, 'statSpeakers'], [x.files, 'statFiles']]
       .map(([v, l]) => h('div', { class: 'stat' }, h('b', { text: num(v) }), h('span', { text: t(l) }))),
     h('div', { class: 'stat' }, h('b', { text: num(Math.round((x.seconds || 0) / 3600)) }), h('span', { text: t('statHours') })),
     h('div', { class: 'stat' }, h('b', { text: size(st.db_bytes) }), h('span', { text: t('statDb') })));

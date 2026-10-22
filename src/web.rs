@@ -744,8 +744,12 @@ async fn check_source(State(st): State<AppState>, Json(req): Json<CheckRequest>)
         || (media.len() >= 5 && surahs * 10 >= media.len() * 8);
     let series_words = ["part", "volume", "series", "tafsir", "season", "পর্ব", "সিরিজ", "তাফসীর"];
     let seriesish = lower.iter().filter(|d| series_words.iter().any(|w| d.contains(w))).count();
+    // Film folders carry a year and usually a quality: "The Message (1976) 720p".
+    let filmish = lower.iter().filter(|d| crate::naming::parse(d).year.is_some()).count();
     let kind = if quranish {
         "quran"
+    } else if filmish * 2 > dirs.len() && filmish > 0 {
+        "films"
     } else if seriesish * 3 >= dirs.len().max(1) && seriesish > 0 {
         "series"
     } else {
@@ -1110,6 +1114,7 @@ async fn storage(State(st): State<AppState>) -> ApiResult {
             "lectures": one("SELECT COUNT(*) FROM titles WHERE kind = 'lecture'")?,
             "series": one("SELECT COUNT(*) FROM titles WHERE kind = 'series'")?,
             "quran": one("SELECT COUNT(*) FROM titles WHERE kind = 'quran'")?,
+            "films": one("SELECT COUNT(*) FROM titles WHERE kind = 'film'")?,
             "speakers": one("SELECT COUNT(DISTINCT speaker) FROM titles WHERE speaker IS NOT NULL AND speaker != ''")?,
             "posters": one("SELECT COUNT(*) FROM titles WHERE poster IS NOT NULL")?,
             "watchlist": one("SELECT COUNT(*) FROM watchlist")?,

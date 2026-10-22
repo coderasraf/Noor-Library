@@ -34,6 +34,11 @@ pub struct Status {
     pub label: String,
     /// e.g. "1,332 videos · 210 folders".
     pub detail: String,
+    /// "starting", "syncing" or "organising", plus the counts so far: the
+    /// page words these in its own language.
+    pub phase: String,
+    pub files: Option<usize>,
+    pub dirs: Option<usize>,
     pub done: Option<usize>,
     pub total: Option<usize>,
     pub current_root: Option<String>,
@@ -156,6 +161,8 @@ fn worker_loop(shared: &Arc<Shared>) {
             s.done = None;
             s.total = None;
             s.detail.clear();
+            s.phase.clear();
+            (s.files, s.dirs) = (None, None);
         }
         let cfg = shared.config.read().unwrap_or_else(PoisonError::into_inner).clone();
         let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| match &job {
@@ -175,6 +182,8 @@ fn worker_loop(shared: &Arc<Shared>) {
         s.current_root = None;
         s.label.clear();
         s.detail.clear();
+        s.phase.clear();
+        (s.files, s.dirs) = (None, None);
         s.done = None;
         s.total = None;
         s.running = more;
@@ -208,6 +217,8 @@ impl Progress for SyncProgress<'_> {
         let mut s = lock(&self.jobs.shared.status);
         s.label = format!("{} · syncing", self.root);
         s.detail = format!("{} videos · {} folders", group(stats.files), group(stats.dirs));
+        s.phase = "syncing".into();
+        (s.files, s.dirs) = (Some(stats.files), Some(stats.dirs));
     }
     fn cancelled(&self) -> bool {
         self.jobs.cancelled()
@@ -223,6 +234,8 @@ fn run_sync(jobs: &Jobs, cfg: &Config, name: &str, full: bool) -> Result<String>
         s.current_root = Some(name.to_string());
         s.label = format!("{name} · syncing");
         s.detail = "starting".into();
+        s.phase = "starting".into();
+        (s.files, s.dirs) = (None, None);
     }
     jobs.log(&format!("Syncing {name} ({})", root.location()));
     let mut index = Index::open(cfg.db_file())?;
@@ -235,7 +248,11 @@ fn run_sync(jobs: &Jobs, cfg: &Config, name: &str, full: bool) -> Result<String>
 
     // Regroup whatever is on record, even after a stop or error: files
     // already written should show up.
-    lock(&jobs.shared.status).detail = "organising".into();
+    {
+        let mut s = lock(&jobs.shared.status);
+        s.detail = "organising".into();
+        s.phase = "organising".into();
+    }
     let titles = library::rebuild_titles(&mut index, &root)?;
 
     let (status, error, msg) = match &result {

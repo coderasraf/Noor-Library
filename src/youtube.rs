@@ -82,6 +82,9 @@ pub struct Video {
     pub channel: Option<String>,
     pub position: i64,
     pub duration: Option<i64>,
+    pub views: Option<i64>,
+    pub likes: Option<i64>,
+    pub comments: Option<i64>,
 }
 
 pub struct YouTube {
@@ -239,6 +242,9 @@ impl YouTube {
                     channel: text(sn, "videoOwnerChannelTitle").or_else(|| listing.author.clone()),
                     position: sn["position"].as_i64().unwrap_or(listing.videos.len() as i64),
                     duration: None,
+                    views: None,
+                    likes: None,
+                    comments: None,
                 });
             }
             on_page(listing.videos.len());
@@ -248,21 +254,33 @@ impl YouTube {
             }
         }
 
-        // Durations, 50 videos per call.
+        // Durations and view / like counts, 50 videos per call.
         for chunk in listing.videos.chunks_mut(50) {
             let ids: Vec<&str> = chunk.iter().map(|v| v.id.as_str()).collect();
             let joined = ids.join(",");
-            let v = self.get("videos", &[("part", "contentDetails"), ("id", &joined)]).await?;
+            let v = self.get("videos", &[("part", "contentDetails,statistics"), ("id", &joined)]).await?;
             for item in v["items"].as_array().into_iter().flatten() {
-                let (Some(id), Some(d)) = (item["id"].as_str(), item["contentDetails"]["duration"].as_str()) else { continue };
-                if let Some(video) = chunk.iter_mut().find(|v| v.id == id) {
-                    video.duration = parse_iso_duration(d);
-                }
+                let Some(video) = item["id"].as_str().and_then(|id| chunk.iter_mut().find(|v| v.id == id)) else { continue };
+                video.duration = item["contentDetails"]["duration"].as_str().and_then(parse_iso_duration);
+                // Counts come as strings; a hidden like count is missing.
+                let count = |k: &str| item["statistics"][k].as_str().and_then(|n| n.parse().ok());
+                video.views = count("viewCount");
+                video.likes = count("likeCount");
+                video.comments = count("commentCount");
             }
+        }
+        // A channel's uploads include Shorts, which bury the lectures. A
+        // playlist was put together by hand, so it's kept whole. Videos with
+        // no duration are upcoming or live right now.
+        if !matches!(target, Target::Playlist(_)) {
+            listing.videos.retain(|v| v.duration.is_some_and(|d| d > SHORTS_MAX_SECS));
         }
         Ok(listing)
     }
 }
+
+/// YouTube Shorts run up to three minutes.
+const SHORTS_MAX_SECS: i64 = 180;
 
 fn text(v: &Value, key: &str) -> Option<String> {
     v[key].as_str().map(str::trim).filter(|s| !s.is_empty()).map(String::from)
@@ -358,6 +376,9 @@ pub fn crawl(cfg: &Config, index: &mut Index, root: &Root, link: &str, progress:
             speaker: root.speaker.clone().or(v.channel.clone()).or(speaker.clone()),
             series: Some(listing.title.clone()),
             position: Some(v.position),
+            views: v.views,
+            likes: v.likes,
+            comments: v.comments,
             ..FileRow::default()
         })
         .collect();

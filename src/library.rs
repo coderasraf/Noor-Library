@@ -75,7 +75,8 @@ pub fn rebuild_titles(index: &mut Index, root: &Root) -> Result<usize> {
             let base = root_prefix(root)?;
             match root.kind {
                 SourceKind::Lectures => group_lectures(&files, &base, root.speaker_folders),
-                SourceKind::Series => group_series(&files, &base, root.speaker_folders),
+                SourceKind::Series => group_series(&files, &base, root, "series"),
+                SourceKind::Films => group_series(&files, &base, root, "film"),
                 SourceKind::Quran => group_quran(&files, &base, root),
             }
         }
@@ -139,10 +140,11 @@ pub fn rebuild_titles(index: &mut Index, root: &Root) -> Result<usize> {
             };
             // From the talk's own words only: speaker and folder names are
             // often in Latin letters even for Bangla lectures.
-            let language = if g.kind == "quran" {
-                Some("ar")
-            } else {
-                naming::language(&format!("{} {}", g.name, labels.join(" ")))
+            let language = match g.kind {
+                "quran" => Some("ar"),
+                // Dubbed films say so in the source name or the season folder.
+                "film" => naming::language(&format!("{} {} {}", root.name, g.name, labels.join(" "))),
+                _ => naming::language(&format!("{} {}", g.name, labels.join(" "))),
             };
             let media = if youtube {
                 "youtube"
@@ -528,16 +530,33 @@ fn volume_folder(name: &str) -> Option<u32> {
     })
 }
 
-/// Series from folders: each series folder (walking up past "Part 2" /
-/// "Volume 3" folders) is one title, its files the episodes.
-fn group_series(files: &[FileInfo], base: &str, speaker_folders: bool) -> Vec<Group> {
+/// Series (and films) from folders: each series folder (walking up past
+/// "Part 2" / "Season 3" folders) is one title, its files the episodes.
+fn group_series(files: &[FileInfo], base: &str, root: &Root, kind: &'static str) -> Vec<Group> {
+    let film = kind == "film";
+    // Film and show folders carry release details: "Omar (TV Series 2012)
+    // 1080p [Dual Audio]" is "Omar".
+    let display = |name: &str| {
+        let parsed = naming::parse(name).title;
+        if film && !parsed.trim().is_empty() { parsed } else { naming::clean_label(name) }
+    };
+    // Numbered episodes all loose in the source folder (an archive.org item,
+    // a podcast download): the source is one series.
+    let loose = files
+        .iter()
+        .all(|f| split_speaker(rel_segments(&f.dir_url, base), root.speaker_folders).1.is_empty());
+    let numbered = files.iter().filter(|f| naming::episode_number(&f.name).is_some()).count();
+    let one_series = !film && loose && files.len() > 1 && numbered * 5 >= files.len() * 4;
+    // A source that is one film (maybe in a few parts) takes the source's
+    // name, which tells versions apart: "The Message (Bangla)".
+    let one_film = film && loose && files.len() <= 3;
     let mut groups: Vec<Group> = Vec::new();
     let mut index_of: HashMap<String, usize> = HashMap::new();
     for (i, f) in files.iter().enumerate() {
         let mut series_dir = f.dir_url.clone();
-        let (speaker, mut rel) = split_speaker(rel_segments(&series_dir, base), speaker_folders);
+        let (speaker, mut rel) = split_speaker(rel_segments(&series_dir, base), root.speaker_folders);
         let mut volume = None;
-        while rel.len() > 1 {
+        while !rel.is_empty() {
             match rel.last().and_then(|n| volume_folder(n)) {
                 Some(v) => {
                     volume.get_or_insert(v);
@@ -548,17 +567,20 @@ fn group_series(files: &[FileInfo], base: &str, speaker_folders: bool) -> Vec<Gr
             }
         }
         let label = naming::clean_label(&f.name);
-        // Episodes loose in the source (or speaker) folder: group by name.
-        let (key, name) = if rel.is_empty() {
-            let b = base_label(&label);
+        let (key, name) = if (rel.is_empty() && volume.is_some()) || one_series || one_film {
+            // The source is the series itself, holding only season folders.
+            (format!("d:{series_dir}"), root.name.clone())
+        } else if rel.is_empty() {
+            // Episodes (or films) loose in the source folder: group by name.
+            let b = if film { display(&f.name) } else { base_label(&label) };
             (format!("t:{}#{}", speaker.as_deref().unwrap_or(""), naming::title_key(&b)), b)
         } else {
-            (format!("d:{series_dir}"), naming::clean_label(rel.last().unwrap()))
+            (format!("d:{series_dir}"), display(rel.last().unwrap()))
         };
         let at = *index_of.entry(key.clone()).or_insert_with(|| {
             groups.push(Group {
                 key,
-                kind: "series",
+                kind,
                 name,
                 year: naming::parse(&folder_name_of(&series_dir)).year,
                 speaker: speaker.clone(),
@@ -660,7 +682,11 @@ fn group_external(files: &[FileInfo], root: &Root, meta: &SourceMeta) -> Vec<Gro
         .collect();
     vec![Group {
         key: "src".into(),
-        kind: if root.kind == SourceKind::Quran { "quran" } else { "series" },
+        kind: match root.kind {
+            SourceKind::Quran => "quran",
+            SourceKind::Films => "film",
+            _ => "series",
+        },
         name: meta.title.clone().unwrap_or_else(|| root.name.clone()),
         year: files.iter().filter_map(|f| f.published_at).min().map(year_of),
         speaker: meta.author.clone().or_else(|| files.iter().find_map(|f| f.speaker.clone())),
@@ -747,6 +773,10 @@ pub struct Card {
     pub saved: bool,
     /// How far into it the listener is, 0..1, when started.
     pub progress: Option<f64>,
+    /// YouTube views (summed over a title's videos).
+    pub views: Option<i64>,
+    /// When it was published (or first seen).
+    pub added_at: i64,
 }
 
 const CARD_COLUMNS: &str = "t.id, t.kind, t.name, t.year, t.speaker, t.topics, t.poster, t.media,
@@ -755,7 +785,9 @@ const CARD_COLUMNS: &str = "t.id, t.kind, t.name, t.year, t.speaker, t.topics, t
     (SELECT CASE WHEN t.file_count = 1 THEN MIN(1.0, p.position / NULLIF(p.duration, 0))
                  ELSE (SELECT COUNT(*) FROM watched w2 JOIN files f2 ON f2.id = w2.file_id WHERE f2.title_id = t.id) * 1.0 / t.file_count END
      FROM progress p JOIN files f ON f.id = p.file_id WHERE f.title_id = t.id
-     ORDER BY p.updated_at DESC LIMIT 1) AS progress";
+     ORDER BY p.updated_at DESC LIMIT 1) AS progress,
+    (SELECT SUM(fv.views) FROM files fv WHERE fv.title_id = t.id) AS views,
+    t.added_at";
 
 fn card_from_row(r: &Row) -> rusqlite::Result<Card> {
     let id: i64 = r.get(0)?;
@@ -776,6 +808,8 @@ fn card_from_row(r: &Row) -> rusqlite::Result<Card> {
         root: r.get(11)?,
         saved: r.get(12)?,
         progress: r.get(13)?,
+        views: r.get(14)?,
+        added_at: r.get(15)?,
     })
 }
 
@@ -891,6 +925,7 @@ pub fn titles(conn: &Connection, q: &Query) -> Result<Page> {
         "oldest" => "t.added_at ASC, t.id ASC",
         "longest" => "t.total_duration IS NULL, t.total_duration DESC",
         "shortest" => "t.total_duration IS NULL, t.total_duration ASC",
+        "popular" => "views IS NULL, views DESC",
         "watchlist" => "(SELECT added_at FROM watchlist w WHERE w.title_id = t.id) DESC",
         _ => "t.added_at DESC, t.id DESC",
     };
@@ -978,6 +1013,9 @@ pub struct Detail {
     pub folder: Option<String>,
     pub total_size: Option<i64>,
     pub speaker_image: Option<String>,
+    /// The source's own name and picture (a YouTube channel's avatar).
+    pub source_title: Option<String>,
+    pub source_image: Option<String>,
     pub items: Vec<ItemView>,
     pub seasons: Vec<SeasonView>,
     pub next_up: Option<i64>,
@@ -1001,6 +1039,9 @@ pub struct ItemView {
     pub played_at: Option<i64>,
     pub position: Option<f64>,
     pub surah: Option<&'static Surah>,
+    pub views: Option<i64>,
+    pub likes: Option<i64>,
+    pub comments: Option<i64>,
 }
 
 #[derive(Serialize)]
@@ -1031,13 +1072,19 @@ pub fn detail(conn: &Connection, id: i64) -> Result<Option<Detail>> {
         None => None,
     };
 
+    let (source_title, source_image): (Option<String>, Option<String>) = conn
+        .query_row("SELECT title, image FROM source_meta WHERE root = ?1", [&card.root], |r| Ok((r.get(0)?, r.get(1)?)))
+        .optional()?
+        .unwrap_or((None, None));
+
     let is_quran = card.kind == "quran";
     let mut stmt = conn.prepare(
         "SELECT f.id, f.url, f.name, f.label, f.season, f.episode, f.size, f.duration,
                 f.published_at, f.thumb, f.description,
                 (SELECT 1 FROM watched w WHERE w.file_id = f.id) IS NOT NULL,
                 (SELECT played_at FROM plays p WHERE p.file_id = f.id),
-                (SELECT position FROM progress g WHERE g.file_id = f.id)
+                (SELECT position FROM progress g WHERE g.file_id = f.id),
+                f.views, f.likes, f.comments
          FROM files f WHERE f.title_id = ?1
          ORDER BY f.season IS NULL, f.season, f.episode IS NULL, f.episode, f.name",
     )?;
@@ -1062,6 +1109,9 @@ pub fn detail(conn: &Connection, id: i64) -> Result<Option<Detail>> {
                 played_at: r.get(12)?,
                 position: r.get(13)?,
                 surah: if is_quran { number.and_then(quran::surah) } else { None },
+                views: r.get(14)?,
+                likes: r.get(15)?,
+                comments: r.get(16)?,
             })
         })?
         .collect::<rusqlite::Result<_>>()?;
@@ -1108,6 +1158,8 @@ pub fn detail(conn: &Connection, id: i64) -> Result<Option<Detail>> {
         folder,
         total_size,
         speaker_image,
+        source_title,
+        source_image,
         items,
         seasons,
         next_up,
@@ -1152,6 +1204,7 @@ pub fn home(conn: &Connection) -> Result<Vec<HomeRow>> {
     push("lectures", Some("#/lectures"), cards(conn, "WHERE t.kind = 'lecture' ORDER BY t.added_at DESC, t.id DESC", 20)?);
     push("series", Some("#/series"), cards(conn, "WHERE t.kind = 'series' ORDER BY t.updated_at DESC, t.id DESC", 20)?);
     push("quran", Some("#/quran"), cards(conn, "WHERE t.kind = 'quran' ORDER BY t.name COLLATE NOCASE", 20)?);
+    push("films", Some("#/films"), cards(conn, "WHERE t.kind = 'film' ORDER BY t.added_at DESC, t.id DESC", 20)?);
     push("saved", Some("#/saved"), cards(conn, "JOIN watchlist w ON w.title_id = t.id ORDER BY w.added_at DESC", 20)?);
     for topic in ["Seerah", "Ramadan", "Family", "Akhirah"] {
         push(
@@ -1224,6 +1277,7 @@ pub struct Counts {
     pub lectures: i64,
     pub series: i64,
     pub quran: i64,
+    pub films: i64,
     pub speakers: i64,
     pub saved: i64,
     pub recent: i64,
@@ -1245,6 +1299,7 @@ pub fn counts(conn: &Connection) -> Result<Counts> {
         lectures: one("SELECT COUNT(*) FROM titles WHERE kind = 'lecture'")?,
         series: one("SELECT COUNT(*) FROM titles WHERE kind = 'series'")?,
         quran: one("SELECT COUNT(*) FROM titles WHERE kind = 'quran'")?,
+        films: one("SELECT COUNT(*) FROM titles WHERE kind = 'film'")?,
         speakers: one("SELECT COUNT(DISTINCT speaker) FROM titles WHERE speaker IS NOT NULL AND speaker != ''")?,
         saved: one("SELECT COUNT(*) FROM watchlist")?,
         recent: one("SELECT COUNT(DISTINCT title_id) FROM plays")?,
@@ -1409,6 +1464,33 @@ mod tests {
         assert_eq!(volume_folder("Tafsir"), None);
         assert_eq!(year_of(1_700_000_000), 2023);
         assert_eq!(year_of(0), 1970);
+    }
+
+    #[test]
+    fn sources_that_are_one_series() {
+        let mut idx = Index::open(":memory:").unwrap();
+        // An archive.org item: numbered episodes loose in the source folder.
+        let s = "https://archive.org/download/SeerahAudio/";
+        let seerah = root("Bangla Seerah", s, SourceKind::Series);
+        let rows: Vec<FileRow> = ["01. Bn Seerah Personality.mp3", "02.BnSeerahSources.mp3", "03. Bn Seerah Arabia.mp3"]
+            .iter()
+            .map(|n| file("Bangla Seerah", &format!("{s}{}", n.replace(' ', "%20"))))
+            .collect();
+        idx.record_level("Bangla Seerah", &rows, &[], &[], &[]).unwrap();
+        assert_eq!(rebuild_titles(&mut idx, &seerah).unwrap(), 1);
+
+        // A drama whose folder holds only season folders.
+        let d = "http://h/TV/Dirilis-Ertugrul%20(TV%20Series%202014-2019)%20720p/";
+        let drama = root("Ertugrul", d, SourceKind::Films);
+        let rows = vec![
+            file("Ertugrul", &format!("{d}Season%201/Ertugrul.S01E01.mkv")),
+            file("Ertugrul", &format!("{d}Season%201/Ertugrul.S01E02.mkv")),
+            file("Ertugrul", &format!("{d}Season%202/Ertugrul.S02E01.mkv")),
+        ];
+        idx.record_level("Ertugrul", &rows, &[], &[], &[]).unwrap();
+        assert_eq!(rebuild_titles(&mut idx, &drama).unwrap(), 1);
+        let page = titles(idx.conn(), &Query { kind: Some("film".into()), ..Query::default() }).unwrap();
+        assert_eq!((page.items[0].name.as_str(), page.items[0].file_count), ("Ertugrul", 3));
     }
 
     #[test]
