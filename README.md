@@ -221,3 +221,10 @@ Surah names from [quran.com](https://quran.com).
 <br>
 <sub>Made with care for everyone seeking beneficial knowledge.</sub>
 </div>
+
+## Author
+
+Built by **Ashraf Siddik**, Shopify developer & CRO specialist.
+
+- Website: [ashraf-siddik.com](https://ashraf-siddik.com)
+- GitHub: [@coderasraf](https://github.com/coderasraf)
