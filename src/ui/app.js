@@ -96,7 +96,7 @@ const STR = {
     rowContinue: 'Continue listening', rowLectures: 'New lectures', rowSeries: 'Series', rowQuran: 'Quran recitations', rowFilms: 'Films & documentaries', rowSaved: 'Saved for later',
     rowSpeakers: 'Speakers', rowTopics: 'Browse by topic', rowTopic: (t) => t,
     play: 'Play', resume: 'Resume', playAll: 'Play all', playFrom: (x) => `Play ${x}`, save: 'Save', saveOn: 'Saved', openFolder: 'Open folder',
-    nViews: (n) => `${compact(n)} views`, autoplay: 'Autoplay', moreFrom: (x) => `More from ${x}`, copyLink: 'Copy link', linkCopied: 'Link copied', episodeOf: (n, m) => `Episode ${n} of ${m}`, openPlayer: 'Open player', sortPopular: 'Most viewed',
+    nowPlaying: 'Playing', prevVideo: 'Previous', nextVideo: 'Next', nViews: (n) => `${n} views`, autoplay: 'Autoplay', moreFrom: (x) => `More from ${x}`, copyLink: 'Copy link', linkCopied: 'Link copied', episodeOf: (n, m) => `Episode ${n} of ${m}`, openPlayer: 'Open player', sortPopular: 'Most viewed',
     openYouTube: 'Open on YouTube', openIn: (p) => `Open in ${p}`, inPlayer: 'External player', watchHere: 'Play here',
     upNext: 'Up next', part: 'Part', episode: 'Episode', surah: 'Surah', verses: (n) => `${n} verses`, makki: 'Makki', madani: 'Madani',
     markWatched: 'Mark as finished', markUnwatched: 'Mark as not finished', more: 'More', less: 'Less', minLeft: (m) => `${m} min left`,
@@ -173,7 +173,7 @@ const STR = {
     rowContinue: 'আবার শুনুন', rowLectures: 'নতুন লেকচার', rowSeries: 'সিরিজ', rowQuran: 'কুরআন তিলাওয়াত', rowFilms: 'চলচ্চিত্র ও ডকুমেন্টারি', rowSaved: 'পরে শোনার জন্য সংরক্ষিত',
     rowSpeakers: 'বক্তা', rowTopics: 'বিষয় অনুযায়ী দেখুন', rowTopic: (t) => t,
     play: 'চালান', resume: 'আবার শুরু', playAll: 'সব চালান', playFrom: (x) => `${x} চালান`, save: 'সংরক্ষণ', saveOn: 'সংরক্ষিত', openFolder: 'ফোল্ডার খুলুন',
-    nViews: (n) => `${compact(n)} বার দেখা`, autoplay: 'অটোপ্লে', moreFrom: (x) => `${x} থেকে আরও`, copyLink: 'লিংক কপি করুন', linkCopied: 'লিংক কপি হয়েছে', episodeOf: (n, m) => `পর্ব ${n} / ${m}`, openPlayer: 'প্লেয়ার খুলুন', sortPopular: 'সবচেয়ে বেশি দেখা',
+    nowPlaying: 'চলছে', prevVideo: 'আগের', nextVideo: 'পরের', nViews: (n) => `${n} বার দেখা`, autoplay: 'অটোপ্লে', moreFrom: (x) => `${x} থেকে আরও`, copyLink: 'লিংক কপি করুন', linkCopied: 'লিংক কপি হয়েছে', episodeOf: (n, m) => `পর্ব ${n} / ${m}`, openPlayer: 'প্লেয়ার খুলুন', sortPopular: 'সবচেয়ে বেশি দেখা',
     openYouTube: 'ইউটিউবে খুলুন', openIn: (p) => `${p}-এ খুলুন`, inPlayer: 'বাইরের প্লেয়ার', watchHere: 'এখানে চালান',
     upNext: 'পরবর্তী', part: 'অংশ', episode: 'পর্ব', surah: 'সূরা', verses: (n) => `${n} আয়াত`, makki: 'মাক্কী', madani: 'মাদানী',
     markWatched: 'শেষ হয়েছে চিহ্নিত করুন', markUnwatched: 'শেষ হয়নি চিহ্নিত করুন', more: 'আরও', less: 'কম', minLeft: (m) => `${m} মিনিট বাকি`,
@@ -600,7 +600,7 @@ function cardMeta(c) {
   if (c.kind === 'series') bits.push(t('nEpisodes', c.file_count));
   else if (c.kind === 'quran') bits.push(t('nSurahs', c.file_count));
   else if (c.file_count > 1) bits.push(t('nParts', c.file_count));
-  if (c.media === 'youtube' && c.views != null) bits.push(t('nViews', c.views));
+  if (c.media === 'youtube' && c.views != null) bits.push(t('nViews', compact(c.views)));
   if (c.media === 'youtube' && c.file_count === 1) bits.push(since(c.added_at));
   else if (c.language && c.language !== lang) bits.push(langName(c.language));
   return bits.join(' · ');
@@ -617,12 +617,21 @@ function card(c) {
   }, icon('bookmark'));
   const playBtn = h('button', { class: 'round-play', title: t('play'), onclick(e) { e.stopPropagation(); quickPlay(c.id); } }, icon('play'));
   const dur = c.total_duration && c.kind === 'lecture' ? h('span', { class: 'duration', text: clock(c.total_duration) }) : null;
-  return h('div', { class: 'card', onclick: () => go(isYouTubeTitle(c) ? '#/watch/' + c.id : '#/title/' + c.id) },
-    h('div', { class: 'thumb' }, art(c), h('div', { class: 'badges' }, kindBadge(c)), dur,
+  return h('div', { class: 'card' + (player.title()?.id === c.id ? ' now' : ''), 'data-title': c.id, onclick: () => go(isYouTubeTitle(c) ? '#/watch/' + c.id : '#/title/' + c.id) },
+    h('div', { class: 'thumb' }, art(c), h('div', { class: 'badges' }, kindBadge(c)), dur, nowBadge(),
       c.progress ? h('div', { class: 'bar' }, h('i', { style: `width:${Math.min(100, Math.round(c.progress * 100))}%` })) : null,
       h('div', { class: 'hover-actions' }, playBtn, mark)),
     h('div', { class: 'card-title', text: c.name, title: c.name }),
     h('div', { class: 'card-meta', text: cardMeta(c) }));
+}
+/** The moving bars that mark what is playing. */
+const eq = () => h('span', { class: 'eq' }, h('i'), h('i'), h('i'));
+const nowBadge = () => h('span', { class: 'now-badge' }, eq(), t('nowPlaying'));
+/** Marks cards and rows of whatever is playing, wherever they are. */
+function markPlaying() {
+  const title = player.title()?.id, file = player.current()?.file_id;
+  for (const el of document.querySelectorAll('[data-title]')) el.classList.toggle('now', Number(el.dataset.title) === title && file != null);
+  for (const el of document.querySelectorAll('[data-file]')) el.classList.toggle('now', Number(el.dataset.file) === file);
 }
 function avatar(name, image) {
   return h('div', { class: 'avatar', style: image ? '' : `background:${hashColor(name)}` },
@@ -946,7 +955,7 @@ function itemRow(d, it, items) {
   const pct = it.position && it.duration ? Math.min(100, (100 * it.position) / it.duration) : 0;
   const thumb = it.thumb || d.poster;
   const left = it.duration && it.position ? Math.max(1, Math.round((it.duration - it.position) / 60)) : null;
-  return h('div', { class: 'item' + (isNext ? ' next' : '') + (playing ? ' playing' : ''), title: it.name, onclick: () => player.start(d, items, items.indexOf(it)) },
+  return h('div', { class: 'item' + (isNext ? ' next' : '') + (playing ? ' playing now' : ''), 'data-file': it.file_id, title: it.name, onclick: () => player.start(d, items, items.indexOf(it)) },
     h('div', { class: 'still' },
       thumb ? h('img', { src: thumb, loading: 'lazy', alt: '' }) : h('div', { class: 'num', text: it.number != null ? digits(pad(it.number)) : '▶' }),
       it.duration ? h('span', { class: 'duration', text: clock(it.duration) }) : null,
@@ -964,7 +973,7 @@ function surahList(d) {
     const s = it.surah;
     const isNext = it.file_id === d.next_up;
     const playing = player.current()?.file_id === it.file_id;
-    return h('div', { class: 'surah' + (isNext ? ' next' : '') + (playing ? ' playing' : ''), title: it.name, onclick: () => player.start(d, d.items, d.items.indexOf(it)) },
+    return h('div', { class: 'surah' + (isNext ? ' next' : '') + (playing ? ' playing now' : ''), 'data-file': it.file_id, title: it.name, onclick: () => player.start(d, d.items, d.items.indexOf(it)) },
       h('div', { class: 'no' }, h('span', { text: digits(s ? s.number : '?') })),
       h('div', { class: 'body' },
         h('div', { class: 'name', text: s ? `${s.name}${lang === 'bn' ? ` · ${s.meaning_bn}` : ` · ${s.meaning_en}`}` : it.label }),
@@ -1083,6 +1092,7 @@ const player = (() => {
       history.replaceState(null, '', watchHash(st.d, it));
     }
     highlight();
+    markPlaying();
     st.onChange?.(it);
   }
 
@@ -1185,6 +1195,7 @@ const player = (() => {
     root.hidden = true;
     layout();
     highlight();
+    markPlaying();
     st.onChange?.(null);
   }
 
@@ -1225,7 +1236,7 @@ const player = (() => {
       visibility: top + bottom >= r.height ? 'hidden' : '',
     });
   }
-  page.addEventListener('scroll', layout, { passive: true });
+  document.addEventListener('scroll', layout, { capture: true, passive: true });
   window.addEventListener('resize', layout);
 
   // ------------------------------------------------------------ chrome
@@ -1285,9 +1296,23 @@ const player = (() => {
     refs.cur.textContent = clock(pos);
     if (dur) { refs.dur.textContent = clock(dur); refs.slider.value = Math.round((pos / dur) * 1000); }
   }
+  const playButtons = new Set();
   function updateButtons() {
-    if (refs.playBtn) refs.playBtn.replaceChildren(icon(paused() ? 'play' : 'pause'));
-    if (refs.miniPlay) refs.miniPlay.replaceChildren(icon(paused() ? 'play' : 'pause'));
+    const ic = paused() ? 'play' : 'pause';
+    if (refs.playBtn) refs.playBtn.replaceChildren(icon(ic));
+    if (refs.miniPlay) refs.miniPlay.replaceChildren(icon(ic));
+    for (const b of playButtons) b.isConnected ? b.replaceChildren(icon(ic)) : playButtons.delete(b);
+    document.body.classList.toggle('media-paused', paused());
+  }
+  /** Next, from the watch page's buttons: the queue first, then whatever
+   *  the page offers (the speaker's next talk). */
+  function skip() {
+    if (st.i + 1 < st.queue.length) { st.i++; load(); }
+    else st.onQueueEnd?.();
+  }
+  function back() {
+    if (st.i > 0) { st.i--; load(); }
+    else if (app.navCount > 1) history.back();
   }
   function highlight() {
     const id = cur()?.file_id;
@@ -1305,6 +1330,9 @@ const player = (() => {
   window.addEventListener('beforeunload', () => save(true));
   return {
     start, current: cur, title: () => st.d, attach, detach, setAutoplay,
+    toggle, skip, back, seek: (d) => seek(position()[0] + d), setSpeed, speed: () => st.speed,
+    hasNext: () => st.i + 1 < st.queue.length, index: () => st.i, size: () => st.queue.length,
+    playButton(b) { playButtons.add(b); updateButtons(); return b; },
     autoplay: () => st.autoplay,
     set onChange(f) { st.onChange = f; },
     set onQueueEnd(f) { st.onQueueEnd = f; },
@@ -1335,25 +1363,49 @@ async function watchPage(titleId, fileId) {
   let it = playing && player.title()?.id === d.id ? playing : pick();
   if (!playing || playing.file_id !== it.file_id) player.start(d, d.items, d.items.indexOf(it), { fromWatch: true });
 
+  // The left column holds the player (pinned) and the details under it; the
+  // right column scrolls on its own.
   const box = h('div', { class: 'watch-player' });
+  const controls = h('div', { class: 'watch-controls' });
   const info = h('div', { class: 'watch-info' });
   const side = h('aside', { class: 'watch-side' });
-  page.append(h('div', { class: 'watch' }, h('div', { class: 'watch-main' }, box, info), side));
+  page.append(h('div', { class: 'watch' }, h('div', { class: 'watch-main' }, h('div', { class: 'watch-pin' }, box, controls), info), side));
   player.attach(box);
 
-  // More from the same speaker (or source), for the side list and autoplay.
+  // More from the same speaker (or source), for the side list, Next and
+  // autoplay.
   const more = [];
   const moreQuery = d.speaker ? { speaker: d.speaker } : { root: d.root };
-  GET('/api/titles?' + qs({ ...moreQuery, sort: 'added', limit: 30 })).then((r) => {
+  GET('/api/titles?' + qs({ ...moreQuery, sort: 'added', limit: 40 })).then((r) => {
     more.push(...r.items.filter((c) => c.id !== d.id));
     renderSide();
+    renderControls();
   }).catch(() => {});
+  const nextTitle = () => more.find((c) => !(c.progress >= 0.95)) || more[0];
+  const openTitle = (c) => go(isYouTubeTitle(c) ? '#/watch/' + c.id : '#/title/' + c.id);
 
   function renderBox() {
     const poster = it.thumb || d.poster;
     fill(box,
       poster ? h('img', { src: poster, alt: '' }) : null,
       h('button', { class: 'watch-replay', title: t('play'), onclick: () => player.start(d, d.items, d.items.indexOf(it), { fromWatch: true }) }, icon('play')));
+  }
+  function renderControls() {
+    const n = d.items.indexOf(it);
+    const upcoming = n + 1 < d.items.length ? d.items[n + 1] : null;
+    const after = upcoming ? upcoming.label : nextTitle()?.name;
+    const speed = h('button', { class: 'speed', title: t('speed'), text: digits(player.speed()) + '×', onclick() { player.setSpeed(); this.textContent = digits(player.speed()) + '×'; } });
+    fill(controls,
+      h('div', { class: 'wc-buttons' },
+        h('button', { class: 'pbtn', title: t('prevVideo'), disabled: n === 0 && app.navCount <= 1, onclick: () => player.back() }, icon('prev')),
+        h('button', { class: 'pbtn', title: '−10s', onclick: () => player.seek(-10) }, icon('back15')),
+        player.playButton(h('button', { class: 'pbtn main', title: t('play'), onclick: () => player.toggle() }, icon('pause'))),
+        h('button', { class: 'pbtn', title: '+10s', onclick: () => player.seek(10) }, icon('fwd30')),
+        h('button', { class: 'pbtn', title: t('nextVideo'), disabled: !after, onclick: () => (upcoming ? player.skip() : nextTitle() && openTitle(nextTitle())) }, icon('next'))),
+      h('div', { class: 'wc-now' }, eq(), h('span', { text: d.items.length > 1 ? t('episodeOf', digits(n + 1), digits(d.items.length)) : t('nowPlaying') })),
+      after ? h('div', { class: 'wc-next', title: after, onclick: () => (upcoming ? player.skip() : openTitle(nextTitle())) },
+        h('span', { text: t('nextVideo') + ':' }), h('b', { text: after })) : h('div', { class: 'wc-next' }),
+      speed);
   }
   function renderInfo() {
     const series = d.items.length > 1;
@@ -1368,7 +1420,7 @@ async function watchPage(titleId, fileId) {
       },
     }, icon('bookmark'), t('save'));
     const yt = ytId(it.url);
-    const statLine = [it.views != null && t('nViews', it.views), since(it.published_at)].filter(Boolean).join('  ·  ');
+    const statLine = [it.views != null && t('nViews', compact(it.views)), since(it.published_at)].filter(Boolean).join('  ·  ');
     const desc = it.description || d.description;
     const descEl = desc ? h('div', { class: 'watch-desc-text', text: desc }) : null;
     const moreBtn = desc && desc.length > 240 ? h('button', { class: 'link', text: t('more'), onclick() { descEl.classList.toggle('open'); this.textContent = descEl.classList.contains('open') ? t('less') : t('more'); } }) : null;
@@ -1391,42 +1443,55 @@ async function watchPage(titleId, fileId) {
           d.language && h('span', { class: 'chip outline', text: langName(d.language) })) : null,
         descEl, moreBtn));
   }
-  function sideRow(thumb, title, sub, dur, prog, onclick, on = false) {
-    return h('div', { class: 'up-row' + (on ? ' on' : ''), onclick },
+  function sideRow({ thumb, title, sub, dur, prog, onclick, file, titleId }) {
+    return h('div', { class: 'up-row', 'data-file': file, 'data-title': titleId, onclick },
       h('div', { class: 'up-thumb' }, thumb ? h('img', { src: thumb, alt: '', loading: 'lazy' }) : h('div', { class: 'tile', style: `background:${hashColor(title)}` }),
         dur ? h('span', { class: 'duration', text: clock(dur) }) : null,
-        prog ? h('div', { class: 'bar' }, h('i', { style: `width:${Math.min(100, Math.round(prog * 100))}%` })) : null),
+        prog ? h('div', { class: 'bar' }, h('i', { style: `width:${Math.min(100, Math.round(prog * 100))}%` })) : null,
+        nowBadge()),
       h('div', { class: 'up-txt' }, h('b', { text: title, title }), sub.map((s) => s && h('span', { text: s }))));
   }
   function renderSide() {
     const auto = h('label', { class: 'switch' },
       h('input', { type: 'checkbox', checked: player.autoplay(), onchange() { player.setAutoplay(this.checked); } }), h('i'), t('autoplay'));
-    const queue = d.items.length > 1 ? h('div', { class: 'up-list' },
-      d.items.map((x, n) => sideRow(x.thumb || d.poster, x.label, [itemCode(d, x), x.views != null && t('nViews', x.views)], x.duration,
-        x.watched ? 1 : x.position && x.duration ? x.position / x.duration : 0,
-        () => player.start(d, d.items, n, { fromWatch: true }), x.file_id === it.file_id))) : null;
+    const series = d.items.length > 1;
+    // A single video shows itself at the top as "Playing"; a series lists
+    // all its episodes with the current one marked.
+    const queue = h('div', { class: 'up-list' + (series ? ' queue' : '') },
+      (series ? d.items : [it]).map((x) => sideRow({
+        thumb: x.thumb || d.poster, title: x.label || d.name, file: x.file_id,
+        sub: [series ? itemCode(d, x) : d.speaker || d.source_title, x.views != null && t('nViews', compact(x.views))],
+        dur: x.duration, prog: x.watched ? 1 : x.position && x.duration ? x.position / x.duration : 0,
+        onclick: () => player.start(d, d.items, d.items.indexOf(x), { fromWatch: true }),
+      })));
     const others = more.length ? h('div', { class: 'up-list' },
-      more.map((c) => sideRow(c.poster, c.name, [c.speaker && c.speaker !== (d.speaker || '') ? c.speaker : '', [c.views != null && t('nViews', c.views), since(c.added_at)].filter(Boolean).join(' · ')],
-        c.file_count === 1 ? c.total_duration : null, c.progress, () => go(isYouTubeTitle(c) ? '#/watch/' + c.id : '#/title/' + c.id)))) : null;
+      more.map((c) => sideRow({
+        thumb: c.poster, title: c.name, titleId: c.id,
+        sub: [c.speaker && c.speaker !== (d.speaker || '') ? c.speaker : '', [c.views != null && t('nViews', compact(c.views)), since(c.added_at)].filter(Boolean).join(' · ')],
+        dur: c.file_count === 1 ? c.total_duration : null, prog: c.progress, onclick: () => openTitle(c),
+      }))) : null;
     fill(side,
       h('div', { class: 'up-head' }, h('h3', { text: t('upNext') }), auto),
       queue,
       others && h('div', { class: 'up-label', text: t('moreFrom', d.speaker || d.source_title || d.root) }),
       others);
-    side.querySelector('.up-row.on')?.scrollIntoView({ block: 'nearest' });
+    markPlaying();
+    side.querySelector('.up-row.now')?.scrollIntoView({ block: 'nearest' });
   }
 
   renderBox();
+  renderControls();
   renderInfo();
   renderSide();
   player.onChange = (x) => {
-    if (x && player.title()?.id === d.id) { it = x; renderBox(); renderInfo(); renderSide(); }
+    if (x && player.title()?.id === d.id) { it = x; renderBox(); renderControls(); renderInfo(); renderSide(); }
   };
-  // At the end of the queue, autoplay moves on to the next talk of the speaker.
+  // Past the last episode, Next (and autoplay) moves on to the speaker's
+  // next talk.
   player.onQueueEnd = () => {
-    const nextTitle = more.find((c) => isYouTubeTitle(c) && !(c.progress >= 0.95));
-    if (!nextTitle) return false;
-    go('#/watch/' + nextTitle.id);
+    const c = nextTitle();
+    if (!c) return false;
+    openTitle(c);
     return true;
   };
   return {

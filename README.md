@@ -42,8 +42,10 @@ Noor Library indexes all of them once and gives you one place to listen:
 - 🏷️ **Browse by topic.** Salah, Ramadan, Seerah, Family, Patience, Akhirah and
   24 more topics are detected from titles in English and Bangla.
 - ▶️ **A built-in player that remembers your place.** It has speed control,
-  ±15/30 s skips, a queue and *Continue listening*. YouTube plays in the app
-  too.
+  ±15/30 s skips, a queue and *Continue listening*.
+- 📺 **A YouTube-style watch page.** Videos play large, with views, likes,
+  the description and an *Up next* list with autoplay. Browse away and the
+  video shrinks into a corner mini-player and keeps playing.
 - 🌐 **Bangla or English, with one click.** The interface, numbers and dates
   all switch, and surah names show in Arabic, English and Bangla.
 - 🔒 **Private by design.** Everything stays on your PC: the library, your
