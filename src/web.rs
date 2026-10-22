@@ -138,7 +138,7 @@ fn router(state: AppState) -> Router {
         .route("/api/facets", get(facets))
         .route("/api/titles/{id}", get(title_detail))
         .route("/api/speakers", get(speakers))
-        .route("/api/surahs", get(|| async { Json(json!({ "surahs": quran::SURAHS })) }))
+        .route("/api/surahs", get(|| async { Json(json!({ "surahs": &quran::SURAHS[..] })) }))
         .route("/api/recent", get(recent))
         .route("/api/progress", post(progress))
         .route("/api/watchlist", post(watchlist))
@@ -1176,7 +1176,7 @@ async fn storage_action(State(st): State<AppState>, UrlPath(action): UrlPath<Str
     ok()
 }
 
-/ ---------------------------------------------------------------- media ---
+// ---------------------------------------------------------------- media ---
 
 /// Streams an indexed local file to the `<video>` element. `ServeFile`
 /// handles Range requests, which is what makes seeking work.

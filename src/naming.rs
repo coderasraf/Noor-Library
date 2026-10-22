@@ -357,8 +357,10 @@ fn part_re() -> &'static Regex {
 
 fn leading_number_re() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
-    // "01 - Title", "001. Title", "12_Title", "(3) Title"
-    RE.get_or_init(|| Regex::new(r"^[(\[]?\s*(\d{1,4})\s*[)\].:_\-–]+\s*").unwrap())
+    // "01 - Title", "001. Title", "12_Title", "(3) Title", and zero-padded
+    // "01 Title". An unpadded "40 Hadith" keeps its number: it may be part
+    // of the name.
+    RE.get_or_init(|| Regex::new(r"^(?:[(\[]?\s*(\d{1,4})\s*[)\].:_\-–]+\s*|(0\d{1,3})\s+)").unwrap())
 }
 
 /// Bangla digits to ASCII, so "পর্ব ১২" reads as part 12.
@@ -376,7 +378,7 @@ pub fn ascii_digits(s: &str) -> String {
 /// "পর্ব ৫", a leading "01 - " or a trailing number.
 pub fn episode_number(name: &str) -> Option<u32> {
     let stem = ascii_digits(strip_extension(name));
-    let spaced = stem.replace('_', " ");
+    let spaced = split_camel(&stem.replace('_', " "));
     if let Some(c) = season_episode().captures(&spaced.replace('.', " ")) {
         let e = c.get(2).or(c.get(4))?;
         return e.as_str().parse().ok();
@@ -385,7 +387,7 @@ pub fn episode_number(name: &str) -> Option<u32> {
         return c[1].parse().ok();
     }
     if let Some(c) = leading_number_re().captures(spaced.trim()) {
-        return c[1].parse().ok();
+        return c.get(1).or(c.get(2))?.as_str().parse().ok();
     }
     trailing_number(&spaced)
 }
@@ -406,6 +408,7 @@ pub fn clean_label(name: &str) -> String {
     if !text.contains(' ') {
         text = text.replace('.', " ");
     }
+    let text = split_camel(&text);
     let text = bracket_tag_re().replace_all(&text, "");
     let text = leading_number_re().replace(text.trim(), "");
     let cleaned = text.split_whitespace().collect::<Vec<_>>().join(" ");
@@ -415,6 +418,31 @@ pub fn clean_label(name: &str) -> String {
     } else {
         cleaned.to_string()
     }
+}
+
+/// "GemsFromTheQuranDay10" -> "Gems From The Quran Day 10". Only for
+/// names with no spaces at all, which are glued together on purpose.
+pub fn split_camel(text: &str) -> String {
+    if text.contains(' ') || text.chars().count() < 12 {
+        return text.to_string();
+    }
+    let chars: Vec<char> = text.chars().collect();
+    let mut out = String::with_capacity(text.len() + 8);
+    for (i, &c) in chars.iter().enumerate() {
+        if i > 0 {
+            let p = chars[i - 1];
+            let next_lower = chars.get(i + 1).is_some_and(|n| n.is_lowercase());
+            let boundary = (p.is_lowercase() && c.is_uppercase())
+                || (p.is_alphabetic() && c.is_ascii_digit())
+                || (p.is_ascii_digit() && c.is_alphabetic())
+                || (p.is_uppercase() && c.is_uppercase() && next_lower);
+            if boundary {
+                out.push(' ');
+            }
+        }
+        out.push(c);
+    }
+    out
 }
 
 fn surah_re() -> &'static Regex {
@@ -542,6 +570,11 @@ mod tests {
         assert_eq!(episode_number("তাফসীর পর্ব ১২.mp3"), Some(12));
         assert_eq!(episode_number("Tafsir_Surah_Kahf_Ep_3.mp4"), Some(3));
         assert_eq!(episode_number("Lecture on Patience.mp3"), None);
+        assert_eq!(episode_number("07 Tawheed.mp3"), Some(7));
+        assert_eq!(clean_label("40 Hadith Nawawi.mp3"), "40 Hadith Nawawi");
+        assert_eq!(clean_label("GemsFromTheQuranRamadhan2016Day10.mp3"), "Gems From The Quran Ramadhan 2016 Day 10");
+        assert_eq!(episode_number("GemsFromTheQuranRamadhan2016Day10.mp3"), Some(10));
+        assert_eq!(clean_label("Tawheed.mp3"), "Tawheed");
         assert_eq!(clean_label("01_Tawheed-Part_2 [128kbps].mp3"), "Tawheed-Part 2");
         assert_eq!(clean_label("Dr. Zakir Naik - Q&A.mp4"), "Dr. Zakir Naik - Q&A");
         assert_eq!(clean_label("The.Sealed.Nectar.mp3"), "The Sealed Nectar");

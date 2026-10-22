@@ -66,7 +66,7 @@ struct SourceMeta {
 /// Rebuilds the titles of one source from its files. Returns the number of
 /// titles it now has.
 pub fn rebuild_titles(index: &mut Index, root: &Root) -> Result<usize> {
-    let files = load_files(index.conn(), &root.name)?;
+    let files = drop_alternate_formats(load_files(index.conn(), &root.name)?);
     let images = load_images(index.conn(), &root.name)?;
     let meta = load_meta(index.conn(), &root.name)?;
 
@@ -134,7 +134,9 @@ pub fn rebuild_titles(index: &mut Index, root: &Root) -> Result<usize> {
             } else {
                 topics::detect(&text)
             };
-            let language = naming::language(&format!("{} {} {}", g.name, folder_name, labels.join(" ")));
+            // From the talk's own words only: speaker and folder names are
+            // often in Latin letters even for Bangla lectures.
+            let language = naming::language(&format!("{} {}", g.name, labels.join(" ")));
             let media = if youtube {
                 "youtube"
             } else if g.items.iter().any(|&(i, _, _)| is_video(&files[i].name)) {
@@ -229,6 +231,35 @@ pub fn rebuild_titles(index: &mut Index, root: &Root) -> Result<usize> {
     }
     tx.commit()?;
     Ok(keep.len())
+}
+
+/// The same talk is often published in several formats side by side
+/// ("Day1.mp3" and "Day1.ogg" on the Internet Archive). Keep one per
+/// folder and name, preferring the most widely playable format.
+fn drop_alternate_formats(files: Vec<FileInfo>) -> Vec<FileInfo> {
+    fn rank(name: &str) -> u8 {
+        match name.rsplit_once('.').map(|(_, e)| e.to_ascii_lowercase()).as_deref() {
+            Some("mp3") => 0,
+            Some("m4a") | Some("mp4") => 1,
+            Some("aac") | Some("webm") => 2,
+            Some("ogg") | Some("opus") => 3,
+            _ => 4,
+        }
+    }
+    let stem = |f: &FileInfo| -> String {
+        let n = f.name.rsplit_once('.').map_or(f.name.as_str(), |(s, _)| s);
+        format!("{}#{}", f.dir_url, n.to_lowercase())
+    };
+    let mut best: HashMap<String, (u8, usize)> = HashMap::new();
+    for (i, f) in files.iter().enumerate() {
+        let r = rank(&f.name);
+        let e = best.entry(stem(f)).or_insert((r, i));
+        if r < e.0 {
+            *e = (r, i);
+        }
+    }
+    let keep: std::collections::HashSet<usize> = best.values().map(|&(_, i)| i).collect();
+    files.into_iter().enumerate().filter(|(i, _)| keep.contains(i)).map(|(_, f)| f).collect()
 }
 
 fn is_video(name: &str) -> bool {
@@ -641,9 +672,14 @@ fn pick_poster(
     dir_url: &str,
     file_dir: Option<&String>,
 ) -> Option<String> {
-    let candidates = images
+    let candidates: Vec<&(String, String)> = images
         .get(dir_url)
-        .or_else(|| file_dir.and_then(|d| images.get(d)))?;
+        .or_else(|| file_dir.and_then(|d| images.get(d)))?
+        .iter()
+        // Machine-made pictures (the Internet Archive's spectrograms) aren't
+        // artwork.
+        .filter(|(_, name)| !name.to_lowercase().contains("spectrogram"))
+        .collect();
     let score = |name: &str| {
         let n = name.to_lowercase();
         if n.contains("poster") || n.contains("cover") || n.starts_with("folder") || n.contains("thumb") {
@@ -655,7 +691,7 @@ fn pick_poster(
         }
     };
     candidates
-        .iter()
+        .into_iter()
         .min_by_key(|(_, name)| score(name))
         .map(|(url, _)| url.clone())
 }

@@ -93,7 +93,7 @@ mod tests {
         Player {
             command: "noor-test-no-such-player".into(),
             args: vec!["{url}".into()],
-            prefer_builtin: false,
+            external_only: false,
         }
     }
 

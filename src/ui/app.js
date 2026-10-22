@@ -1,24 +1,34 @@
 'use strict';
 
 /* =====================================================================
-   medialib front end. No framework: a tiny element builder, a hash
-   router, and one function per page. Every value from the server is
-   inserted with textContent / attributes, never as HTML, because file
-   and folder names are untrusted.
+   Noor Library front end. No framework: a tiny element builder, a hash
+   router, one function per page, and a player bar that survives page
+   changes. Every value from the server is inserted with textContent or
+   attributes, never as HTML, because file and folder names are untrusted.
    ===================================================================== */
 
 // ------------------------------------------------------------- icons
 const ICONS = {
   home: '<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/>',
-  film: '<rect x="2" y="2" width="20" height="20" rx="2.2"/><path d="M7 2v20M17 2v20M2 12h20M2 7h5M2 17h5M17 17h5M17 7h5"/>',
-  tv: '<rect x="2" y="7" width="20" height="15" rx="2"/><path d="m17 2-5 5-5-5"/>',
+  mic: '<rect x="9" y="2" width="6" height="12" rx="3"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8"/>',
+  layers: '<path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>',
+  book: '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
+  users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
+  tag: '<path d="M12.6 2.6A2 2 0 0 0 11.2 2H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.7 8.7a2.4 2.4 0 0 0 3.4 0l6.6-6.6a2.4 2.4 0 0 0 0-3.4z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/>',
   bookmark: '<path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>',
   history: '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
   sliders: '<path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4"/>',
   search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
   play: '<path d="M6 3.5v17a1 1 0 0 0 1.5.86l14-8.5a1 1 0 0 0 0-1.72l-14-8.5A1 1 0 0 0 6 3.5z"/>',
-  layers: '<path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>',
+  pause: '<rect x="5" y="3" width="5" height="18" rx="1.5"/><rect x="14" y="3" width="5" height="18" rx="1.5"/>',
+  prev: '<path d="M19 20 9 12l10-8z"/><path d="M5 19V5"/>',
+  next: '<path d="m5 4 10 8-10 8z"/><path d="M19 5v14"/>',
+  back15: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/>',
+  fwd30: '<path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/>',
+  volume: '<path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"/>',
+  expand: '<path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>',
+  shrink: '<path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/>',
   folder: '<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>',
   sync: '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>',
   stop: '<rect x="5" y="5" width="14" height="14" rx="2"/>',
@@ -29,9 +39,6 @@ const ICONS = {
   chevronLeft: '<path d="m15 18-6-6 6-6"/>',
   check: '<path d="M20 6 9 17l-5-5"/>',
   checkCircle: '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
-  star: '<path d="M11.5 2.3a.6.6 0 0 1 1 0l2.9 5.9 6.5.9a.6.6 0 0 1 .3 1l-4.7 4.6 1.1 6.5a.6.6 0 0 1-.8.6L12 18.8l-5.8 3a.6.6 0 0 1-.8-.6l1.1-6.5L1.8 10a.6.6 0 0 1 .3-1l6.5-.9z"/>',
-  pin: '<path d="M20 10c0 5-5.5 10.2-7.4 11.8a1 1 0 0 1-1.2 0C9.5 20.2 4 15 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/>',
-  languages: '<path d="m5 8 6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6"/>',
   send: '<path d="M14.5 21.7a.5.5 0 0 0 .9 0l6.5-19a.5.5 0 0 0-.6-.6l-19 6.5a.5.5 0 0 0 0 .9l7.9 3.2a2 2 0 0 1 1.1 1.1z"/><path d="m21.9 2.1-11 11"/>',
   database: '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5M3 12a9 3 0 0 0 18 0"/>',
   monitor: '<rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8M12 17v4"/>',
@@ -40,10 +47,12 @@ const ICONS = {
   globe: '<circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20M2 12h20"/>',
   external: '<path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
   eye: '<path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0"/><circle cx="12" cy="12" r="3"/>',
-  link: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
-  broom: '<path d="M3 6h18M7 6v14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V6M10 11v6M14 11v6"/>',
+  youtube: '<path d="M2.5 17a24.12 24.12 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49.56 49.56 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24.12 24.12 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49.55 49.55 0 0 1-16.2 0A2 2 0 0 1 2.5 17"/><path d="m10 15 5-3-5-3z"/>',
+  rss: '<path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/>',
+  headphones: '<path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/>',
+  languages: '<path d="m5 8 6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6"/>',
 };
-const FILLED = new Set(['play', 'star']);
+const FILLED = new Set(['play', 'pause', 'prev', 'next']);
 
 function icon(name, cls = '') {
   const t = document.createElement('template');
@@ -51,6 +60,203 @@ function icon(name, cls = '') {
   t.innerHTML = `<svg class="i${fill} ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[name] || ''}</svg>`;
   return t.content.firstChild;
 }
+
+// -------------------------------------------------------------- i18n
+// Interface text in Bangla and English. Topic and language names are
+// translated too; content (titles, speakers) is shown as published.
+const STR = {
+  en: {
+    appName: 'Noor Library', tagline: 'Islamic media library',
+    home: 'Home', lectures: 'Lectures', series: 'Series', quran: 'Quran', speakers: 'Speakers', topics: 'Topics',
+    navLibrary: 'Library', navSources: 'Sources', saved: 'Saved', recent: 'Continue listening', settings: 'Settings',
+    addSource: 'Add a source', searchPh: 'Search lectures, speakers, topics…',
+    lecture: 'Lecture', seriesOne: 'Series', quranOne: 'Recitation',
+    nLectures: (n) => `${n} lecture${n == 1 ? '' : 's'}`, nSeries: (n) => `${n} series`, nQuran: (n) => `${n} recitation${n == 1 ? '' : 's'}`,
+    nItems: (n) => `${n} item${n == 1 ? '' : 's'}`, nResults: (n) => `${n} result${n == 1 ? '' : 's'}`, nSpeakers: (n) => `${n} speaker${n == 1 ? '' : 's'}`,
+    nEpisodes: (n) => `${n} episode${n == 1 ? '' : 's'}`, nParts: (n) => `${n} part${n == 1 ? '' : 's'}`, nSurahs: (n) => `${n} surah${n == 1 ? '' : 's'}`,
+    nLinks: (n) => `${n} source${n == 1 ? '' : 's'}`,
+    seeAll: 'See all', anySpeaker: 'Any speaker', anyTopic: 'Any topic', anyLanguage: 'Any language', anyLength: 'Any length',
+    anyMedia: 'Audio & video', allFolders: 'All folders', anyYear: 'Any year', allTypes: 'All types', sort: 'Sort', clear: 'Clear',
+    short: 'Under 20 min', medium: '20–60 min', long: 'Over 1 hour', audio: 'Audio', video: 'Video', youtube: 'YouTube',
+    sortNewest: 'Newest first', sortOldest: 'Oldest first', sortTitle: 'Title A–Z', sortLongest: 'Longest', sortShortest: 'Shortest',
+    sortUpdated: 'Recently updated', sortSaved: 'Recently saved',
+    noMatches: 'No matches', noMatchesText: 'Nothing fits these filters.', clearFilters: 'Clear filters',
+    emptyTitle: 'Your library is empty', emptyText: 'Add a server folder, a folder on this PC, a YouTube channel or a podcast feed to get started.',
+    syncingTitle: 'Syncing your sources…', syncingText: 'Items appear as soon as each source finishes.',
+    nothingYet: 'Nothing here yet', nothingYetText: 'Sync your sources to fill the library.', syncNow: 'Sync now',
+    welcomeTitle: 'Welcome to Noor Library', welcomeText: 'Lectures, series and Quran recitations from your servers, folders, YouTube channels and podcasts, in one place.',
+    ayahTr: '“Read in the name of your Lord who created.” (Al-‘Alaq 96:1)', startAdd: 'Add your first source',
+    rowContinue: 'Continue listening', rowLectures: 'New lectures', rowSeries: 'Series', rowQuran: 'Quran recitations', rowSaved: 'Saved for later',
+    rowSpeakers: 'Speakers', rowTopics: 'Browse by topic', rowTopic: (t) => t,
+    play: 'Play', resume: 'Resume', playAll: 'Play all', playFrom: (x) => `Play ${x}`, save: 'Save', saveOn: 'Saved', openFolder: 'Open folder',
+    openYouTube: 'Open on YouTube', openIn: (p) => `Open in ${p}`, inPlayer: 'External player', watchHere: 'Play here',
+    upNext: 'Up next', part: 'Part', episode: 'Episode', surah: 'Surah', verses: (n) => `${n} verses`, makki: 'Makki', madani: 'Madani',
+    markWatched: 'Mark as finished', markUnwatched: 'Mark as not finished', more: 'More', less: 'Less', minLeft: (m) => `${m} min left`,
+    backTo: (x) => x, speakerTitles: (n) => `${n} titles`, noEpisodes: 'Nothing playable found.',
+    cantPlayHere: "This file can't play inside the app (usually MKV or HEVC video).", skipNext: 'Skip to next',
+    opening: (x, p) => `Opening ${x} in ${p}`, openedYouTube: 'Opened on YouTube', speed: 'Speed', close: 'Close',
+    nothingPlayed: 'Nothing played yet', nothingPlayedText: 'What you listen to shows up here, newest first.',
+    nothingSaved: 'Nothing saved yet', nothingSavedText: 'Use the bookmark on any card to save it for later.',
+    resultsFor: (q) => `Results for “${q}”`, searchSpeakers: 'Search speakers…',
+    // settings
+    tabSources: 'Sources', tabPlayer: 'Player', tabYouTube: 'YouTube', tabAssistant: 'AI assistant', tabLanguage: 'Language', tabLibrary: 'Library & storage',
+    addLink: 'Add a source', addLead: 'Paste a server folder link, a YouTube channel or playlist, or a podcast feed — or choose a folder on this PC.',
+    location: 'Link or folder', locationHint: 'Everything inside is scanned.', type: 'Type', name: 'Name', nameHint: 'Shown in the sidebar.',
+    speakerField: 'Speaker (optional)', speakerHint: 'For a source with one speaker.', speakerFolders: 'Folders inside are speaker names (Speaker/lecture.mp3)',
+    checkLink: 'Check link', addAndSync: 'Add and sync', checking: 'Checking…',
+    kindLectures: 'Lectures', kindSeries: 'Series', kindQuran: 'Quran',
+    kindHint: { lectures: 'Each file (or folder) is one talk', series: 'Folders of numbered parts or episodes', quran: 'Reciter folders with surah files' },
+    checkOk: (o, n, f) => `✓ ${o}: ${n}${f ? `, ${f} folders` : ''}.`, originNames: { web: 'Server folder', folder: 'Folder on this PC', youtube: 'YouTube', feed: 'Podcast feed' },
+    looksLike: (k) => `Looks like: ${k}.`, added: (n) => `Added “${n}”. Syncing now — items appear when it finishes.`,
+    yourSources: 'Your sources', fullRescan: 'Full rescan', syncAll: 'Sync all', syncing: 'Syncing…', sync: 'Sync', stop: 'Stop', edit: 'Edit', del: 'Delete', cancel: 'Cancel', saveBtn: 'Save', savedOk: 'Saved.',
+    queued: 'Queued', neverSynced: 'Never synced', syncedAgo: (x) => `Synced ${x}`, stoppedEarly: 'stopped before finishing',
+    justNow: 'just now', minAgo: (n) => `${n} min ago`, hAgo: (n) => `${n} h ago`, dAgo: (n) => `${n} d ago`,
+    noSources: 'No sources yet. Add one above.', activity: 'Activity', activityLead: 'What the last syncs did.', nothing: 'Nothing yet.',
+    deleteQ: (n) => `Delete “${n}”?`, deleteText: 'Its items leave your library (saved items and progress too). Nothing on the server or disk is touched.',
+    rescanQ: 'Full rescan', rescanText: 'Re-read every source from scratch. Items that are gone are removed. Large sources take a while.', rescanOk: 'Rescan everything',
+    playerTitle: 'Player', playerLead: 'Audio, MP4/WebM video and YouTube play inside the app. Other video (MKV, AVI…) opens in this program.',
+    program: 'Program', programHint: 'Full path to vlc.exe, mpv.exe or another player.', args: 'Arguments', argsHint: '{url} becomes the link or file path.',
+    externalOnly: 'Always use the external player (except YouTube)', browse: 'Browse…', getVlc: 'Get VLC',
+    ytTitle: 'YouTube channels and playlists', ytLead: 'Noor Library reads channels and playlists through the free YouTube Data API. It needs a key (about two minutes to get).',
+    ytSteps: ['Open Google Cloud Console and create a project (any name).', 'Enable “YouTube Data API v3” for it.', 'Create credentials → API key, and paste it here.'],
+    ytKey: 'YouTube API key', testKey: 'Test key', keyWorks: '✓ The key works.', openConsole: 'Open Google Cloud Console',
+    asTitle: 'Watch assistant', asLead: 'Ask in Bangla or English — “a short Bangla lecture on patience”, “Surah Al-Kahf recitation”. It uses Google Gemini, recommends only what is in your library, and never gives religious rulings.',
+    geminiKey: 'Gemini API key', freeFrom: 'Free from', model: 'Model', loadList: 'Load list', modelsOk: (n) => `✓ Key works. ${n} chat models — pick one in the Model box.`, clearChat: 'Clear chat history',
+    clearChatQ: 'Clear chat history?', clearChatText: 'The assistant forgets the conversation so far.', chatCleared: 'Chat cleared',
+    langTitle: 'Language', langLead: 'Language of menus and buttons. Lectures keep their own titles.',
+    libTitle: 'Library', scanning: 'Scanning', scanningLead: 'Applies to the next sync.', skipFolders: 'Skip folders whose name contains', commaHint: 'Comma-separated, not case-sensitive.',
+    fileTypes: 'Audio and video file types', parallel: 'Parallel requests', pause: 'Pause between levels (ms)', timeout: 'Timeout (s)', depth: 'Max folder depth',
+    maintenance: 'Maintenance', maintenanceLead: 'None of these touch your media files.', rebuild: 'Rebuild library', rebuildText: 'Regroup every source again. Saved items and progress are kept.',
+    clearHistory: 'Clear listening history', clearHistoryText: 'Forget what you played, your progress and finished marks.', reset: 'Reset library',
+    resetText: 'Empty the whole library: items, history, saved and chat. Your sources stay; sync them to rebuild.', resetOk: 'Reset everything', done: 'Done',
+    openData: 'Open data folder', dataFolder: 'Data folder', settingsFile: 'Settings file', database: 'Database',
+    statLectures: 'lectures', statSeries: 'series', statQuran: 'recitations', statSpeakers: 'speakers', statFiles: 'files', statHours: 'hours of audio/video', statDb: 'database',
+    // assistant
+    asSub: (m) => `Finds picks in your library · ${m} · chat is saved`, asSetupTitle: 'Set up the assistant', asSetupText: 'Add a free Google Gemini API key and the assistant will suggest lectures from your own library.',
+    asOpenSettings: 'Open assistant settings', asHello: 'What would you like to listen to?',
+    asHelloText: (l, s, q) => `Ask for a topic, a speaker, a length or a mood. I'll pick from your ${l} lectures, ${s} series and ${q} recitations.`,
+    asPh: 'e.g. a short lecture on patience…',
+    suggestions: ['A short Bangla lecture on patience', 'Seerah series for beginners', 'Surah Al-Kahf recitation', 'Talks about family and marriage'],
+    stopping: 'Stopping…', selectFirst: 'Choose a folder', notConnected: 'Not connected', somethingWrong: 'Something went wrong',
+  },
+  bn: {
+    appName: 'নূর লাইব্রেরি', tagline: 'ইসলামিক মিডিয়া লাইব্রেরি',
+    home: 'হোম', lectures: 'লেকচার', series: 'সিরিজ', quran: 'কুরআন', speakers: 'বক্তা', topics: 'বিষয়',
+    navLibrary: 'লাইব্রেরি', navSources: 'উৎস', saved: 'সংরক্ষিত', recent: 'আবার শুনুন', settings: 'সেটিংস',
+    addSource: 'উৎস যোগ করুন', searchPh: 'লেকচার, বক্তা, বিষয় খুঁজুন…',
+    lecture: 'লেকচার', seriesOne: 'সিরিজ', quranOne: 'তিলাওয়াত',
+    nLectures: (n) => `${n}টি লেকচার`, nSeries: (n) => `${n}টি সিরিজ`, nQuran: (n) => `${n}টি তিলাওয়াত`,
+    nItems: (n) => `${n}টি আইটেম`, nResults: (n) => `${n}টি ফলাফল`, nSpeakers: (n) => `${n} জন বক্তা`,
+    nEpisodes: (n) => `${n}টি পর্ব`, nParts: (n) => `${n}টি অংশ`, nSurahs: (n) => `${n}টি সূরা`,
+    nLinks: (n) => `${n}টি উৎস`,
+    seeAll: 'সব দেখুন', anySpeaker: 'সব বক্তা', anyTopic: 'সব বিষয়', anyLanguage: 'সব ভাষা', anyLength: 'যেকোনো দৈর্ঘ্য',
+    anyMedia: 'অডিও ও ভিডিও', allFolders: 'সব ফোল্ডার', anyYear: 'সব বছর', allTypes: 'সব ধরন', sort: 'সাজান', clear: 'মুছুন',
+    short: '২০ মিনিটের কম', medium: '২০–৬০ মিনিট', long: '১ ঘণ্টার বেশি', audio: 'অডিও', video: 'ভিডিও', youtube: 'ইউটিউব',
+    sortNewest: 'নতুন আগে', sortOldest: 'পুরনো আগে', sortTitle: 'নাম অনুযায়ী', sortLongest: 'দীর্ঘতম', sortShortest: 'সংক্ষিপ্ততম',
+    sortUpdated: 'সম্প্রতি হালনাগাদ', sortSaved: 'সম্প্রতি সংরক্ষিত',
+    noMatches: 'কিছু পাওয়া যায়নি', noMatchesText: 'এই ফিল্টারে কিছু মেলে না।', clearFilters: 'ফিল্টার মুছুন',
+    emptyTitle: 'আপনার লাইব্রেরি খালি', emptyText: 'শুরু করতে সার্ভারের ফোল্ডার, এই পিসির ফোল্ডার, ইউটিউব চ্যানেল বা পডকাস্ট ফিড যোগ করুন।',
+    syncingTitle: 'উৎসগুলো সিঙ্ক হচ্ছে…', syncingText: 'প্রতিটি উৎস শেষ হলেই আইটেম দেখা যাবে।',
+    nothingYet: 'এখনও কিছু নেই', nothingYetText: 'লাইব্রেরি ভরাতে উৎসগুলো সিঙ্ক করুন।', syncNow: 'এখন সিঙ্ক করুন',
+    welcomeTitle: 'নূর লাইব্রেরিতে স্বাগতম', welcomeText: 'আপনার সার্ভার, ফোল্ডার, ইউটিউব চ্যানেল ও পডকাস্টের লেকচার, সিরিজ ও কুরআন তিলাওয়াত — এক জায়গায়।',
+    ayahTr: '“পড়ো তোমার প্রতিপালকের নামে, যিনি সৃষ্টি করেছেন।” (সূরা আল-আলাক ৯৬:১)', startAdd: 'প্রথম উৎস যোগ করুন',
+    rowContinue: 'আবার শুনুন', rowLectures: 'নতুন লেকচার', rowSeries: 'সিরিজ', rowQuran: 'কুরআন তিলাওয়াত', rowSaved: 'পরে শোনার জন্য সংরক্ষিত',
+    rowSpeakers: 'বক্তা', rowTopics: 'বিষয় অনুযায়ী দেখুন', rowTopic: (t) => t,
+    play: 'চালান', resume: 'আবার শুরু', playAll: 'সব চালান', playFrom: (x) => `${x} চালান`, save: 'সংরক্ষণ', saveOn: 'সংরক্ষিত', openFolder: 'ফোল্ডার খুলুন',
+    openYouTube: 'ইউটিউবে খুলুন', openIn: (p) => `${p}-এ খুলুন`, inPlayer: 'বাইরের প্লেয়ার', watchHere: 'এখানে চালান',
+    upNext: 'পরবর্তী', part: 'অংশ', episode: 'পর্ব', surah: 'সূরা', verses: (n) => `${n} আয়াত`, makki: 'মাক্কী', madani: 'মাদানী',
+    markWatched: 'শেষ হয়েছে চিহ্নিত করুন', markUnwatched: 'শেষ হয়নি চিহ্নিত করুন', more: 'আরও', less: 'কম', minLeft: (m) => `${m} মিনিট বাকি`,
+    backTo: (x) => x, speakerTitles: (n) => `${n}টি আইটেম`, noEpisodes: 'চালানোর মতো কিছু পাওয়া যায়নি।',
+    cantPlayHere: 'এই ফাইলটি অ্যাপের ভেতরে চলে না (সাধারণত MKV বা HEVC ভিডিও)।', skipNext: 'পরেরটিতে যান',
+    opening: (x, p) => `${p}-এ খোলা হচ্ছে: ${x}`, openedYouTube: 'ইউটিউবে খোলা হয়েছে', speed: 'গতি', close: 'বন্ধ',
+    nothingPlayed: 'এখনও কিছু শোনা হয়নি', nothingPlayedText: 'আপনি যা শোনেন তা এখানে দেখা যাবে, নতুনটি আগে।',
+    nothingSaved: 'এখনও কিছু সংরক্ষিত নেই', nothingSavedText: 'যেকোনো কার্ডের বুকমার্ক চাপুন, পরে শোনার জন্য সংরক্ষিত হবে।',
+    resultsFor: (q) => `“${q}”-এর ফলাফল`, searchSpeakers: 'বক্তা খুঁজুন…',
+    tabSources: 'উৎস', tabPlayer: 'প্লেয়ার', tabYouTube: 'ইউটিউব', tabAssistant: 'এআই সহকারী', tabLanguage: 'ভাষা', tabLibrary: 'লাইব্রেরি ও স্টোরেজ',
+    addLink: 'উৎস যোগ করুন', addLead: 'সার্ভারের ফোল্ডার লিংক, ইউটিউব চ্যানেল বা প্লেলিস্ট, অথবা পডকাস্ট ফিড দিন — অথবা এই পিসির একটি ফোল্ডার বেছে নিন।',
+    location: 'লিংক বা ফোল্ডার', locationHint: 'ভেতরের সবকিছু স্ক্যান করা হবে।', type: 'ধরন', name: 'নাম', nameHint: 'সাইডবারে দেখাবে।',
+    speakerField: 'বক্তা (ঐচ্ছিক)', speakerHint: 'যে উৎসে একজনই বক্তা।', speakerFolders: 'ভেতরের ফোল্ডারগুলো বক্তাদের নাম (বক্তা/লেকচার.mp3)',
+    checkLink: 'লিংক যাচাই', addAndSync: 'যোগ করে সিঙ্ক করুন', checking: 'যাচাই হচ্ছে…',
+    kindLectures: 'লেকচার', kindSeries: 'সিরিজ', kindQuran: 'কুরআন',
+    kindHint: { lectures: 'প্রতিটি ফাইল (বা ফোল্ডার) একটি লেকচার', series: 'ক্রমিক অংশ বা পর্বের ফোল্ডার', quran: 'ক্বারীর ফোল্ডারে সূরার ফাইল' },
+    checkOk: (o, n, f) => `✓ ${o}: ${n}${f ? `, ${f}টি ফোল্ডার` : ''}।`, originNames: { web: 'সার্ভারের ফোল্ডার', folder: 'এই পিসির ফোল্ডার', youtube: 'ইউটিউব', feed: 'পডকাস্ট ফিড' },
+    looksLike: (k) => `মনে হচ্ছে: ${k}।`, added: (n) => `“${n}” যোগ হয়েছে। এখন সিঙ্ক হচ্ছে — শেষ হলে আইটেম দেখা যাবে।`,
+    yourSources: 'আপনার উৎসসমূহ', fullRescan: 'সম্পূর্ণ রিস্ক্যান', syncAll: 'সব সিঙ্ক', syncing: 'সিঙ্ক হচ্ছে…', sync: 'সিঙ্ক', stop: 'থামান', edit: 'সম্পাদনা', del: 'মুছুন', cancel: 'বাতিল', saveBtn: 'সংরক্ষণ', savedOk: 'সংরক্ষিত হয়েছে।',
+    queued: 'অপেক্ষমাণ', neverSynced: 'কখনও সিঙ্ক হয়নি', syncedAgo: (x) => `সিঙ্ক হয়েছে ${x}`, stoppedEarly: 'শেষ হওয়ার আগে থামানো হয়েছে',
+    justNow: 'এইমাত্র', minAgo: (n) => `${n} মিনিট আগে`, hAgo: (n) => `${n} ঘণ্টা আগে`, dAgo: (n) => `${n} দিন আগে`,
+    noSources: 'এখনও কোনো উৎস নেই। উপরে যোগ করুন।', activity: 'কার্যক্রম', activityLead: 'সাম্প্রতিক সিঙ্কে কী হয়েছে।', nothing: 'এখনও কিছু নেই।',
+    deleteQ: (n) => `“${n}” মুছবেন?`, deleteText: 'এর আইটেমগুলো লাইব্রেরি থেকে সরে যাবে (সংরক্ষণ ও অগ্রগতিসহ)। সার্ভার বা ডিস্কের কিছুই মুছবে না।',
+    rescanQ: 'সম্পূর্ণ রিস্ক্যান', rescanText: 'সব উৎস নতুন করে পড়া হবে। যেগুলো আর নেই সেগুলো সরানো হবে। বড় উৎসে সময় লাগে।', rescanOk: 'সব রিস্ক্যান করুন',
+    playerTitle: 'প্লেয়ার', playerLead: 'অডিও, MP4/WebM ভিডিও ও ইউটিউব অ্যাপের ভেতরেই চলে। অন্য ভিডিও (MKV, AVI…) এই প্রোগ্রামে খুলবে।',
+    program: 'প্রোগ্রাম', programHint: 'vlc.exe, mpv.exe বা অন্য প্লেয়ারের পুরো ঠিকানা।', args: 'আর্গুমেন্ট', argsHint: '{url} এর জায়গায় লিংক বা ফাইলের ঠিকানা বসবে।',
+    externalOnly: 'সবসময় বাইরের প্লেয়ার ব্যবহার করুন (ইউটিউব ছাড়া)', browse: 'ব্রাউজ…', getVlc: 'VLC নামান',
+    ytTitle: 'ইউটিউব চ্যানেল ও প্লেলিস্ট', ytLead: 'নূর লাইব্রেরি ফ্রি YouTube Data API দিয়ে চ্যানেল ও প্লেলিস্ট পড়ে। এর জন্য একটি কী লাগে (দুই মিনিটে পাওয়া যায়)।',
+    ytSteps: ['Google Cloud Console খুলে একটি প্রজেক্ট তৈরি করুন (যেকোনো নাম)।', 'প্রজেক্টে “YouTube Data API v3” চালু করুন।', 'Credentials → API key তৈরি করে এখানে পেস্ট করুন।'],
+    ytKey: 'ইউটিউব API কী', testKey: 'কী যাচাই', keyWorks: '✓ কী কাজ করছে।', openConsole: 'Google Cloud Console খুলুন',
+    asTitle: 'সহকারী', asLead: 'বাংলা বা ইংরেজিতে জিজ্ঞেস করুন — “ধৈর্য নিয়ে ছোট বাংলা লেকচার”, “সূরা কাহফ তিলাওয়াত”। এটি Google Gemini ব্যবহার করে, শুধু আপনার লাইব্রেরি থেকে সাজেস্ট করে এবং কোনো ফতোয়া দেয় না।',
+    geminiKey: 'Gemini API কী', freeFrom: 'ফ্রি পাবেন', model: 'মডেল', loadList: 'তালিকা আনুন', modelsOk: (n) => `✓ কী কাজ করছে। ${n}টি চ্যাট মডেল — মডেল বক্সে একটি বেছে নিন।`, clearChat: 'চ্যাট ইতিহাস মুছুন',
+    clearChatQ: 'চ্যাট ইতিহাস মুছবেন?', clearChatText: 'সহকারী এ পর্যন্ত কথোপকথন ভুলে যাবে।', chatCleared: 'চ্যাট মুছে ফেলা হয়েছে',
+    langTitle: 'ভাষা', langLead: 'মেনু ও বাটনের ভাষা। লেকচারের নাম যেমন আছে তেমনই থাকবে।',
+    libTitle: 'লাইব্রেরি', scanning: 'স্ক্যানিং', scanningLead: 'পরের সিঙ্ক থেকে কার্যকর।', skipFolders: 'যে ফোল্ডারের নামে এগুলো আছে বাদ দিন', commaHint: 'কমা দিয়ে আলাদা করুন, বড়-ছোট হাতের অক্ষরে পার্থক্য নেই।',
+    fileTypes: 'অডিও ও ভিডিও ফাইলের ধরন', parallel: 'একসাথে অনুরোধ', pause: 'স্তরের মাঝে বিরতি (ms)', timeout: 'টাইমআউট (সেকেন্ড)', depth: 'সর্বোচ্চ ফোল্ডার গভীরতা',
+    maintenance: 'রক্ষণাবেক্ষণ', maintenanceLead: 'এগুলোর কোনোটিই আপনার মিডিয়া ফাইলে হাত দেয় না।', rebuild: 'লাইব্রেরি পুনর্গঠন', rebuildText: 'সব উৎস আবার সাজানো হবে। সংরক্ষিত ও অগ্রগতি থাকবে।',
+    clearHistory: 'শোনার ইতিহাস মুছুন', clearHistoryText: 'যা শুনেছেন, অগ্রগতি ও শেষ-চিহ্ন মুছে যাবে।', reset: 'লাইব্রেরি রিসেট',
+    resetText: 'পুরো লাইব্রেরি খালি হবে: আইটেম, ইতিহাস, সংরক্ষিত ও চ্যাট। উৎসগুলো থাকবে; আবার সিঙ্ক করলে তৈরি হবে।', resetOk: 'সব রিসেট করুন', done: 'সম্পন্ন',
+    openData: 'ডেটা ফোল্ডার খুলুন', dataFolder: 'ডেটা ফোল্ডার', settingsFile: 'সেটিংস ফাইল', database: 'ডেটাবেস',
+    statLectures: 'লেকচার', statSeries: 'সিরিজ', statQuran: 'তিলাওয়াত', statSpeakers: 'বক্তা', statFiles: 'ফাইল', statHours: 'ঘণ্টা অডিও/ভিডিও', statDb: 'ডেটাবেস',
+    asSub: (m) => `আপনার লাইব্রেরি থেকে খুঁজে দেয় · ${m} · চ্যাট সংরক্ষিত থাকে`, asSetupTitle: 'সহকারী চালু করুন', asSetupText: 'একটি ফ্রি Google Gemini API কী দিন, সহকারী আপনার লাইব্রেরি থেকে লেকচার সাজেস্ট করবে।',
+    asOpenSettings: 'সহকারীর সেটিংস খুলুন', asHello: 'আজ কী শুনতে চান?',
+    asHelloText: (l, s, q) => `বিষয়, বক্তা, সময় বা মন অনুযায়ী জিজ্ঞেস করুন। আপনার ${l}টি লেকচার, ${s}টি সিরিজ ও ${q}টি তিলাওয়াত থেকে বেছে দেব।`,
+    asPh: 'যেমন: ধৈর্য নিয়ে ছোট একটি লেকচার…',
+    suggestions: ['ধৈর্য নিয়ে ছোট একটি বাংলা লেকচার', 'নতুনদের জন্য সীরাত সিরিজ', 'সূরা কাহফ তিলাওয়াত', 'পরিবার ও দাম্পত্য নিয়ে আলোচনা'],
+    stopping: 'থামানো হচ্ছে…', selectFirst: 'একটি ফোল্ডার বেছে নিন', notConnected: 'সংযোগ নেই', somethingWrong: 'কিছু একটা ভুল হয়েছে',
+  },
+};
+
+// Topic keys from the server, with names, a calligraphy glyph and colours.
+const TOPICS = {
+  Quran: { en: 'Quran', bn: 'কুরআন', g: 'ق', c: ['#0f5a44', '#0a2a21'] },
+  Tafsir: { en: 'Tafsir', bn: 'তাফসীর', g: 'ت', c: ['#145a5a', '#0b2627'] },
+  Hadith: { en: 'Hadith', bn: 'হাদিস', g: 'ح', c: ['#4b3a1a', '#1f180b'] },
+  Seerah: { en: 'Seerah', bn: 'সীরাত', g: 'س', c: ['#5a3d14', '#24190a'] },
+  Prophets: { en: 'Stories of the Prophets', bn: 'নবীদের কাহিনী', g: 'ن', c: ['#3b3f7a', '#171930'] },
+  Sahaba: { en: 'Sahaba', bn: 'সাহাবী', g: 'ص', c: ['#42305e', '#1b1427'] },
+  Aqeedah: { en: 'Aqeedah (Belief)', bn: 'আকিদা', g: 'ع', c: ['#1d4f6e', '#0c2130'] },
+  Salah: { en: 'Prayer (Salah)', bn: 'নামাজ', g: 'ص', c: ['#16614a', '#0a2a20'] },
+  Ramadan: { en: 'Ramadan & Fasting', bn: 'রমজান ও রোজা', g: 'ر', c: ['#5e2f5a', '#271326'] },
+  Hajj: { en: 'Hajj & Umrah', bn: 'হজ ও উমরা', g: 'ح', c: ['#3d3d3d', '#151515'] },
+  Zakat: { en: 'Zakat & Charity', bn: 'যাকাত ও সদকা', g: 'ز', c: ['#5a5414', '#24210a'] },
+  Dua: { en: 'Dua & Dhikr', bn: 'দোয়া ও জিকির', g: 'د', c: ['#1d5a6e', '#0b2430'] },
+  Family: { en: 'Family & Marriage', bn: 'পরিবার ও বিবাহ', g: 'أ', c: ['#6e3a2a', '#2c1710'] },
+  Parenting: { en: 'Parenting', bn: 'সন্তান প্রতিপালন', g: 'و', c: ['#6e5a2a', '#2c2410'] },
+  Youth: { en: 'Youth', bn: 'তরুণদের জন্য', g: 'ش', c: ['#2a5e6e', '#10262c'] },
+  Women: { en: 'Women', bn: 'নারী', g: 'ن', c: ['#6e2a4f', '#2c1020'] },
+  Akhirah: { en: 'Death & Hereafter', bn: 'মৃত্যু ও আখিরাত', g: 'آ', c: ['#33384a', '#14161d'] },
+  Jannah: { en: 'Jannah & Jahannam', bn: 'জান্নাত ও জাহান্নাম', g: 'ج', c: ['#1f6e3f', '#0c2c19'] },
+  Character: { en: 'Character (Akhlaq)', bn: 'চরিত্র ও আখলাক', g: 'خ', c: ['#4f6e2a', '#202c10'] },
+  Patience: { en: 'Patience & Gratitude', bn: 'ধৈর্য ও কৃতজ্ঞতা', g: 'ص', c: ['#2a4f6e', '#10202c'] },
+  Tawbah: { en: 'Repentance', bn: 'তওবা', g: 'ت', c: ['#3a2a6e', '#17102c'] },
+  Fiqh: { en: 'Fiqh & Rulings', bn: 'ফিকহ ও মাসআলা', g: 'ف', c: ['#5a4632', '#241c14'] },
+  Business: { en: 'Halal Earning', bn: 'হালাল উপার্জন', g: 'ر', c: ['#2a6e5a', '#102c24'] },
+  History: { en: 'Islamic History', bn: 'ইসলামের ইতিহাস', g: 'ت', c: ['#6e4a2a', '#2c1e10'] },
+  Science: { en: 'Islam & Science', bn: 'ইসলাম ও বিজ্ঞান', g: 'ع', c: ['#2a3f6e', '#10192c'] },
+  Dawah: { en: 'Dawah', bn: 'দাওয়াহ', g: 'د', c: ['#6e2a2a', '#2c1010'] },
+  Kids: { en: 'For Kids', bn: 'শিশুদের জন্য', g: 'ط', c: ['#6e5f2a', '#2c2610'] },
+  Nasheed: { en: 'Nasheed & Naat', bn: 'নাশিদ ও গজল', g: 'ن', c: ['#4a2a6e', '#1e102c'] },
+  Waz: { en: 'Waz & Khutbah', bn: 'ওয়াজ ও খুতবা', g: 'و', c: ['#2a6e4a', '#102c1e'] },
+  Arabic: { en: 'Learn Arabic', bn: 'আরবি শিক্ষা', g: 'ض', c: ['#5a2a6e', '#24102c'] },
+};
+const LANGS = { bn: { en: 'Bangla', bn: 'বাংলা' }, en: { en: 'English', bn: 'ইংরেজি' }, ar: { en: 'Arabic', bn: 'আরবি' }, ur: { en: 'Urdu', bn: 'উর্দু' }, hi: { en: 'Hindi', bn: 'হিন্দি' } };
+
+let lang = 'bn';
+try { lang = localStorage.getItem('noor.lang') || 'bn'; } catch { /* storage may be blocked */ }
+function t(key, ...args) {
+  const v = STR[lang]?.[key] ?? STR.en[key];
+  if (typeof v === 'function') return v(...args.map((a) => (typeof a === 'number' ? num(a) : a)));
+  return v ?? key;
+}
+const topicName = (k) => TOPICS[k]?.[lang] || k;
+const langName = (k) => LANGS[k]?.[lang] || k;
 
 // ----------------------------------------------------------- helpers
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -79,7 +285,6 @@ function h(tag, props, ...kids) {
   if (value !== undefined) el.value = value;
   return el;
 }
-
 /** replaceChildren that skips null/false, like h() does. */
 function fill(el, ...kids) {
   el.replaceChildren(...kids.flat(Infinity).filter((k) => k != null && k !== false));
@@ -88,10 +293,7 @@ function fill(el, ...kids) {
 
 async function api(method, path, body) {
   const opts = { method, headers: {} };
-  if (body !== undefined) {
-    opts.headers['Content-Type'] = 'application/json';
-    opts.body = JSON.stringify(body);
-  }
+  if (body !== undefined) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
   const r = await fetch(path, opts);
   const d = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(d.error || r.statusText || 'Request failed');
@@ -101,115 +303,142 @@ const GET = (p) => api('GET', p);
 const POST = (p, b) => api('POST', p, b ?? {});
 const PUT = (p, b) => api('PUT', p, b);
 const DEL = (p) => api('DELETE', p);
-
 function qs(obj) {
   const p = new URLSearchParams();
   for (const [k, v] of Object.entries(obj)) if (v !== undefined && v !== null && v !== '' && v !== false) p.set(k, v);
   return p.toString();
 }
-
 function toast(msg, err = false) {
-  const t = h('div', { class: 'toast' + (err ? ' err' : ''), text: msg });
-  $('#toasts').append(t);
-  setTimeout(() => t.remove(), err ? 6000 : 3200);
+  const el = h('div', { class: 'toast' + (err ? ' err' : ''), text: msg });
+  $('#toasts').append(el);
+  setTimeout(() => el.remove(), err ? 6000 : 3200);
 }
 
-const num = (n) => Number(n || 0).toLocaleString('en-US');
-const plural = (n, word) => `${num(n)} ${word}${n === 1 ? '' : 's'}`;
+const nf = () => new Intl.NumberFormat(lang === 'bn' ? 'bn-BD' : 'en-US');
+const num = (n) => nf().format(Number(n || 0));
+const digits = (s) => (lang === 'bn' ? String(s).replace(/\d/g, (d) => '০১২৩৪৫৬৭৮৯'[d]) : String(s));
+const pad = (n) => String(n).padStart(2, '0');
+/** 3723 -> "1:02:03". */
+function clock(sec) {
+  if (sec == null || !isFinite(sec)) return '';
+  sec = Math.max(0, Math.round(sec));
+  const h_ = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+  return digits(h_ ? `${h_}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`);
+}
+/** 3723 -> "1 h 2 min" / "১ ঘণ্টা ২ মিনিট". */
+function human(sec) {
+  if (!sec) return '';
+  const h_ = Math.floor(sec / 3600), m = Math.round((sec % 3600) / 60);
+  if (lang === 'bn') return [h_ && `${num(h_)} ঘণ্টা`, m && `${num(m)} মিনিট`].filter(Boolean).join(' ');
+  return [h_ && `${h_} h`, m && `${m} min`].filter(Boolean).join(' ');
+}
 function size(b) {
   if (b == null) return '';
   const u = ['B', 'KB', 'MB', 'GB', 'TB'];
   let i = 0;
   while (b >= 1024 && i < u.length - 1) { b /= 1024; i++; }
-  return (i >= 3 ? b.toFixed(1) : Math.round(b)) + ' ' + u[i];
+  return digits((i >= 3 ? b.toFixed(1) : Math.round(b)) + ' ') + u[i];
 }
 function ago(ts) {
-  if (!ts) return 'Never synced';
+  if (!ts) return t('neverSynced');
   const s = Math.max(0, Date.now() / 1000 - ts);
-  if (s < 60) return 'Synced just now';
-  if (s < 3600) return `Synced ${Math.round(s / 60)} min ago`;
-  if (s < 86400) return `Synced ${Math.round(s / 3600)} h ago`;
-  return `Synced ${Math.round(s / 86400)} d ago`;
+  const x = s < 60 ? t('justNow') : s < 3600 ? t('minAgo', Math.round(s / 60)) : s < 86400 ? t('hAgo', Math.round(s / 3600)) : t('dAgo', Math.round(s / 86400));
+  return t('syncedAgo', x);
 }
-function fmtDate(iso) {
-  if (!iso) return '';
-  const d = new Date(iso + 'T00:00:00');
-  return isNaN(d) ? iso : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+function fmtDate(ts) {
+  if (!ts) return '';
+  return new Date(ts * 1000).toLocaleDateString(lang === 'bn' ? 'bn-BD' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 }
-const pad = (n) => String(n).padStart(2, '0');
-const epCode = (e) => (e.season != null && e.episode != null) ? `S${pad(e.season)}E${pad(e.episode)}` : (e.episode != null ? `E${pad(e.episode)}` : '');
-function years(c) {
-  if (!c.year) return '';
-  if (c.kind === 'show') {
-    if (c.ongoing) return `${c.year}–`;
-    if (c.year_end && c.year_end !== c.year) return `${c.year}–${c.year_end}`;
-  }
-  return String(c.year);
+const go = (hash) => { location.hash = hash; };
+function hashColor(s) {
+  let x = 0;
+  for (const c of s || '') x = (x * 31 + c.charCodeAt(0)) | 0;
+  const hue = Math.abs(x) % 360;
+  return `linear-gradient(135deg, hsl(${hue} 45% 32%), hsl(${(hue + 40) % 360} 50% 16%))`;
 }
-function runtime(min) {
-  if (!min) return '';
-  return min >= 60 ? `${Math.floor(min / 60)}h ${min % 60}m` : `${min} min`;
-}
-function playableName(name) {
-  const ext = (name.split('.').pop() || '').toLowerCase();
-  return ['mp4', 'm4v', 'webm', 'mov', 'ogv'].includes(ext);
+const initials = (name) => (name || '?').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => [...w][0]).join('').toUpperCase();
+const ext = (name) => (String(name).split(/[?#]/)[0].split('.').pop() || '').toLowerCase();
+const AUDIO = new Set(['mp3', 'm4a', 'aac', 'ogg', 'opus', 'wav', 'flac']);
+const VIDEO_OK = new Set(['mp4', 'm4v', 'webm', 'mov', '3gp']);
+function ytId(url) {
+  try {
+    const u = new URL(url);
+    if (u.hostname === 'youtu.be') return u.pathname.slice(1);
+    if (u.hostname.endsWith('youtube.com')) return u.searchParams.get('v');
+  } catch { /* not a URL */ }
+  return null;
 }
 function playerName() {
   const cmd = app.state?.flags?.player || 'player';
   const base = cmd.split(/[\\/]/).pop().replace(/\.exe$/i, '');
   return base.toLowerCase() === 'vlc' ? 'VLC' : base;
 }
-const go = (hash) => { location.hash = hash; };
 
 // --------------------------------------------------------------- app
-const app = {
-  state: null,
-  wasRunning: false,
-  pageCtl: null,
-  gridMemo: {},
-  detailSeason: {},
-  editing: null,
-  navCount: 0,
-};
+const app = { state: null, wasBusy: false, pageCtl: null, gridMemo: {}, detailSeason: {}, editing: null, navCount: 0 };
+
+function applyStaticText() {
+  document.documentElement.lang = lang;
+  for (const el of document.querySelectorAll('[data-t]')) el.textContent = t(el.dataset.t);
+  $('#search').placeholder = t('searchPh');
+  $('#lang-toggle').textContent = lang === 'bn' ? 'English' : 'বাংলা';
+  $('#lang-toggle').title = t('tabLanguage');
+  $('#add-source').title = t('addSource');
+  $('#top-settings').title = t('settings');
+  $('#fab').title = t('asTitle');
+}
+
+async function setLang(l) {
+  lang = l;
+  try { localStorage.setItem('noor.lang', l); } catch { /* ignore */ }
+  applyStaticText();
+  renderSidebar();
+  if (app.state) renderJob();
+  PUT('/api/settings/ui', { language: l }).catch(() => {});
+  if (assistant.open) renderAssistant();
+  player.render();
+  route();
+}
 
 // ----------------------------------------------------------- sidebar
 function navItem(href, iconName, label, count, extra) {
   return h('a', { class: 'nav-item', href, 'data-href': href },
     icon(iconName), h('span', { class: 'label', text: label }), extra,
-    count != null ? h('span', { class: 'count', text: num(count) }) : null);
+    count ? h('span', { class: 'count', text: num(count) }) : null);
 }
-
+const ORIGIN_ICON = { web: 'globe', folder: 'folder', youtube: 'youtube', feed: 'rss' };
 function renderSidebar() {
-  const s = app.state;
-  const c = s?.counts || {};
-  $('#nav-main').replaceChildren(
-    navItem('#/', 'home', 'Home'),
-    navItem('#/movies', 'film', 'Movies', c.movies ?? 0),
-    navItem('#/shows', 'tv', 'TV Shows', c.shows ?? 0),
-  );
-  $('#nav-library').replaceChildren(
-    navItem('#/watchlist', 'bookmark', 'Watchlist', c.watchlist || null),
-    navItem('#/recent', 'history', 'Recently played', c.recent || null),
-  );
-  const sources = s?.sources || [];
-  $('#nav-sources').replaceChildren(...(sources.length ? sources.map((src) => {
-    const a = navItem('#/source/' + encodeURIComponent(src.name), src.kind === 'shows' ? 'tv' : 'film',
-      src.name, src.count, src.syncing ? h('span', { class: 'nav-dot', title: 'Syncing' }) : null);
+  const c = app.state?.counts || {};
+  fill($('#nav-main'),
+    navItem('#/', 'home', t('home')),
+    navItem('#/lectures', 'mic', t('lectures'), c.lectures),
+    navItem('#/series', 'layers', t('series'), c.series),
+    navItem('#/quran', 'book', t('quran'), c.quran),
+    navItem('#/speakers', 'users', t('speakers'), c.speakers),
+    navItem('#/topics', 'tag', t('topics')));
+  fill($('#nav-library'),
+    navItem('#/saved', 'bookmark', t('saved'), c.saved),
+    navItem('#/recent', 'history', t('recent'), c.recent));
+  const sources = app.state?.sources || [];
+  fill($('#nav-sources'), sources.length ? sources.map((s) => {
+    const a = navItem('#/source/' + encodeURIComponent(s.name), ORIGIN_ICON[s.origin] || 'folder', s.name, s.count,
+      s.syncing ? h('span', { class: 'nav-dot' }) : null);
     a.classList.add('small');
-    a.title = src.name;
+    a.title = s.name;
     return a;
-  }) : [h('a', { class: 'nav-item small', href: '#/settings/sources' }, icon('plus'), h('span', { class: 'label', text: 'Add a source' }))]));
-  $('#nav-bottom').replaceChildren(navItem('#/settings/sources', 'sliders', 'Settings'));
+  }) : h('a', { class: 'nav-item small', href: '#/settings/sources' }, icon('plus'), h('span', { class: 'label', text: t('addSource') })));
+  fill($('#nav-bottom'), navItem('#/settings/sources', 'sliders', t('settings')));
   markActiveNav();
 }
-
 function markActiveNav() {
   const hash = location.hash || '#/';
   for (const a of document.querySelectorAll('#sidebar .nav-item')) {
     const href = a.getAttribute('data-href') || '';
     const on = href === '#/' ? (hash === '#/' || hash === '#' || hash === '')
       : href.startsWith('#/settings') ? hash.startsWith('#/settings')
-        : hash === href;
+        : href === '#/speakers' ? (hash === href || hash.startsWith('#/speaker/'))
+          : href === '#/topics' ? (hash === href || hash.startsWith('#/topic/'))
+            : hash === href;
     a.classList.toggle('on', on);
   }
 }
@@ -227,56 +456,46 @@ async function refreshState() {
   renderSidebar();
   renderJob();
   const job = app.state.job;
-  const busy = job.running || job.queued_roots.length > 0 || job.lookup_queued;
-  if (app.wasRunning && !busy) onJobsFinished(job);
-  app.wasRunning = busy;
+  const busy = job.running || job.queued_roots.length > 0;
+  if (app.wasBusy && !busy) {
+    if (job.message) toast(job.message);
+    if (app.pageCtl?.refresh && page.scrollTop < 300) app.pageCtl.refresh();
+  }
+  app.wasBusy = busy;
   app.pageCtl?.onState?.(app.state);
   pollTimer = setTimeout(refreshState, busy ? 1200 : 8000);
 }
-
 function renderJob() {
   const job = app.state.job;
-  const busy = job.running || job.queued_roots.length > 0 || job.lookup_queued;
+  const busy = job.running || job.queued_roots.length > 0;
   $('#job').hidden = !busy;
   const progress = $('#progress');
-  if (!busy) {
-    progress.classList.remove('indeterminate');
-    $('#progress-bar').style.width = '0';
-    return;
-  }
-  let text = job.label || 'Waiting…';
+  if (!busy) { progress.classList.remove('indeterminate'); $('#progress-bar').style.width = '0'; return; }
+  let text = job.label || '…';
   if (job.detail) text += ' · ' + job.detail;
-  const waiting = job.queued_roots.length + (job.lookup_queued ? 1 : 0);
-  if (waiting) text += ` (+${waiting} queued)`;
+  if (job.queued_roots.length) text += ` (+${num(job.queued_roots.length)})`;
   $('#job-text').textContent = text;
-  if (job.total) {
-    progress.classList.remove('indeterminate');
-    $('#progress-bar').style.width = `${Math.round((100 * (job.done || 0)) / job.total)}%`;
-  } else {
-    progress.classList.add('indeterminate');
-    $('#progress-bar').style.width = '';
-  }
-}
-
-function onJobsFinished(job) {
-  if (job.message) toast(job.message);
-  // New titles: refresh list pages, but don't yank the user's scroll.
-  if (app.pageCtl?.refresh && page.scrollTop < 300) app.pageCtl.refresh();
+  if (job.total) { progress.classList.remove('indeterminate'); $('#progress-bar').style.width = `${Math.round((100 * (job.done || 0)) / job.total)}%`; }
+  else { progress.classList.add('indeterminate'); $('#progress-bar').style.width = ''; }
 }
 
 // ------------------------------------------------------------ router
 const routes = [
   [/^#?\/?$/, () => homePage()],
-  [/^#\/movies$/, () => gridPage({ kind: 'movie', title: 'Movies', noun: 'movie' })],
-  [/^#\/shows$/, () => gridPage({ kind: 'show', title: 'TV Shows', noun: 'show' })],
-  [/^#\/source\/(.+)$/, (m) => sourcePage(decodeURIComponent(m[1]))],
-  [/^#\/watchlist$/, () => gridPage({ watchlist: true, title: 'Watchlist', noun: 'title', mixed: true, sort: 'watchlist', empty: ['bookmark', 'Nothing saved yet', 'Use the bookmark on any poster to save it for later.'] })],
+  [/^#\/lectures$/, () => gridPage({ kind: 'lecture', title: t('lectures'), noun: 'nLectures', sorts: 'lecture' })],
+  [/^#\/series$/, () => gridPage({ kind: 'series', title: t('series'), noun: 'nSeries', sorts: 'series' })],
+  [/^#\/quran$/, () => gridPage({ kind: 'quran', title: t('quran'), noun: 'nQuran', sorts: 'quran' })],
+  [/^#\/speakers$/, () => speakersPage()],
+  [/^#\/speaker\/(.+)$/, (m) => speakerPage(decodeURIComponent(m[1]))],
+  [/^#\/topics$/, () => topicsPage()],
+  [/^#\/topic\/(.+)$/, (m) => { const k = decodeURIComponent(m[1]); return gridPage({ topic: k, title: topicName(k), noun: 'nItems', sorts: 'mixed', mixed: true }); }],
+  [/^#\/saved$/, () => gridPage({ watchlist: true, title: t('saved'), noun: 'nItems', mixed: true, sorts: 'saved', empty: ['bookmark', t('nothingSaved'), t('nothingSavedText')] })],
   [/^#\/recent$/, () => recentPage()],
   [/^#\/search\/(.*)$/, (m) => searchPage(decodeURIComponent(m[1]))],
+  [/^#\/source\/(.+)$/, (m) => sourcePage(decodeURIComponent(m[1]))],
   [/^#\/title\/(\d+)$/, (m) => detailPage(Number(m[1]))],
   [/^#\/settings(?:\/(\w+))?$/, (m) => settingsPage(m[1] || 'sources')],
 ];
-
 async function route() {
   app.pageCtl?.cleanup?.();
   app.pageCtl = null;
@@ -289,143 +508,96 @@ async function route() {
   for (const [re, fn] of routes) {
     const m = hash.match(re);
     if (m) {
-      try {
-        app.pageCtl = (await fn(m)) || null;
-      } catch (e) {
-        page.replaceChildren(emptyState('info', 'Something went wrong', e.message));
-      }
+      try { app.pageCtl = (await fn(m)) || null; }
+      catch (e) { page.replaceChildren(emptyState('info', t('somethingWrong'), e.message)); }
       return;
     }
   }
   go('#/');
 }
-
 function emptyState(iconName, title, text, ...actions) {
-  return h('div', { class: 'empty' },
-    h('div', { class: 'big-icon' }, icon(iconName)),
-    h('h2', { text: title }),
-    h('div', { text }),
-    actions.length ? h('div', { class: 'actions' }, actions) : null);
+  return h('div', { class: 'empty' }, h('div', { class: 'big-icon' }, icon(iconName)), h('h2', { text: title }), h('div', { text }),
+    actions.filter(Boolean).length ? h('div', { class: 'actions' }, actions) : null);
 }
 
 // ------------------------------------------------------------- cards
-function placeholder(c) {
-  return h('div', { class: 'placeholder', text: c.name });
+/** Artwork for a card: the image, or a generated tile. */
+function art(c, { big = false } = {}) {
+  const tile = () => {
+    const glyph = c.kind === 'quran' ? 'القرآن' : TOPICS[c.topics?.[0]]?.g || 'ن';
+    return h('div', { class: 'tile', style: `background:${c.kind === 'quran' ? 'linear-gradient(135deg,#0f5a44,#0a2119)' : hashColor(c.speaker || c.name)}` },
+      h('span', { class: 'glyph', text: glyph }),
+      h('div', { class: 't', text: c.name }),
+      c.speaker && c.speaker !== c.name ? h('div', { class: 's', text: c.speaker }) : null);
+  };
+  if (!c.poster) return tile();
+  return h('img', { src: c.poster, loading: big ? null : 'lazy', alt: '', onerror() { this.replaceWith(tile()); } });
 }
-
-function badge(kind) {
-  return h('span', { class: 'badge ' + kind }, icon('languages'), kind === 'dual' ? 'Dual audio' : 'Multi audio');
+function kindBadge(c) {
+  if (c.media === 'youtube') return h('span', { class: 'badge yt' }, icon('youtube'), 'YouTube');
+  if (c.kind === 'series') return h('span', { class: 'badge series', text: `${t('seriesOne')} · ${num(c.file_count)}` });
+  if (c.kind === 'quran') return h('span', { class: 'badge quran', text: t('quranOne') });
+  return null;
 }
-
 function cardMeta(c) {
-  if (c.kind === 'show') {
-    const count = c.season_count > 1 ? plural(c.season_count, 'season') : `${num(c.file_count)} eps`;
-    return [years(c), count].filter(Boolean).join(' · ');
-  }
-  return [c.year, c.quality].filter(Boolean).join(' · ');
+  const bits = [];
+  if (c.speaker && c.kind !== 'quran') bits.push(c.speaker);
+  if (c.kind === 'series') bits.push(t('nEpisodes', c.file_count));
+  else if (c.kind === 'quran') bits.push(t('nSurahs', c.file_count));
+  else if (c.file_count > 1) bits.push(t('nParts', c.file_count));
+  if (c.language && c.language !== lang) bits.push(langName(c.language));
+  return bits.join(' · ');
 }
-
 function card(c) {
-  const img = c.poster
-    ? h('img', { src: c.poster, loading: 'lazy', alt: '', onerror() { this.replaceWith(placeholder(c)); } })
-    : placeholder(c);
-  const badges = h('div', { class: 'badges' },
-    c.audio === 'dual' && badge('dual'),
-    c.audio === 'multi' && badge('multi'),
-    c.kind === 'show' && c.ongoing && h('span', { class: 'badge ongoing', text: 'Ongoing' }));
   const mark = h('button', {
-    class: 'mark' + (c.in_watchlist ? ' on' : ''), title: c.in_watchlist ? 'Remove from watchlist' : 'Add to watchlist',
+    class: 'mark' + (c.saved ? ' on' : ''), title: c.saved ? t('saveOn') : t('save'),
     async onclick(e) {
       e.stopPropagation();
-      c.in_watchlist = !c.in_watchlist;
-      mark.classList.toggle('on', c.in_watchlist);
-      mark.title = c.in_watchlist ? 'Remove from watchlist' : 'Add to watchlist';
-      try { await POST('/api/watchlist', { title_id: c.id, on: c.in_watchlist }); refreshState(); }
-      catch (err) { toast(err.message, true); }
+      c.saved = !c.saved;
+      mark.classList.toggle('on', c.saved);
+      try { await POST('/api/watchlist', { title_id: c.id, on: c.saved }); refreshState(); } catch (err) { toast(err.message, true); }
     },
   }, icon('bookmark'));
-  const play = h('button', { class: 'round-play', title: 'Play', onclick(e) { e.stopPropagation(); quickPlay(c.id); } }, icon('play'));
+  const playBtn = h('button', { class: 'round-play', title: t('play'), onclick(e) { e.stopPropagation(); quickPlay(c.id); } }, icon('play'));
+  const dur = c.total_duration && c.kind === 'lecture' ? h('span', { class: 'duration', text: clock(c.total_duration) }) : null;
   return h('div', { class: 'card', onclick: () => go('#/title/' + c.id) },
-    h('div', { class: 'poster' }, img, badges, h('div', { class: 'hover-actions' }, play, mark)),
+    h('div', { class: 'thumb' }, art(c), h('div', { class: 'badges' }, kindBadge(c)), dur,
+      c.progress ? h('div', { class: 'bar' }, h('i', { style: `width:${Math.min(100, Math.round(c.progress * 100))}%` })) : null,
+      h('div', { class: 'hover-actions' }, playBtn, mark)),
     h('div', { class: 'card-title', text: c.name, title: c.name }),
     h('div', { class: 'card-meta', text: cardMeta(c) }));
 }
-
-// -------------------------------------------------------------- play
-function findFile(d, fileId) {
-  for (const f of d.files || []) if (f.file_id === fileId) return f;
-  for (const s of d.seasons || []) {
-    for (const e of s.episodes) {
-      if (e.file_id === fileId) return e;
-      for (const v of e.versions || []) if (v.file_id === fileId) return { ...e, ...v };
-    }
-  }
-  return null;
+function avatar(name, image) {
+  return h('div', { class: 'avatar', style: image ? '' : `background:${hashColor(name)}` },
+    image ? h('img', { src: image, alt: '', loading: 'lazy', onerror() { this.parentElement.style.background = hashColor(name); this.replaceWith(initials(name)); } }) : initials(name));
+}
+function personCard(s) {
+  return h('div', { class: 'person', onclick: () => go('#/speaker/' + encodeURIComponent(s.name)) },
+    avatar(s.name, s.image), h('b', { text: s.name }), h('span', { text: t('speakerTitles', s.count) }));
+}
+function topicTile(k, count) {
+  const m = TOPICS[k] || { g: '•', c: ['#2a3532', '#121816'] };
+  return h('div', { class: 'topic', style: `background:linear-gradient(135deg,${m.c[0]},${m.c[1]})`, onclick: () => go('#/topic/' + encodeURIComponent(k)) },
+    h('span', { class: 'glyph', text: m.g }), h('b', { text: topicName(k) }), count != null ? h('span', { text: t('nItems', count) }) : null);
 }
 
 async function quickPlay(titleId) {
   try {
     const d = await GET('/api/titles/' + titleId);
-    if (!d.next_up) return toast('No video files for this title', true);
-    await playFile(d, d.next_up);
+    const list = d.items;
+    const idx = Math.max(0, list.findIndex((i) => i.file_id === d.next_up));
+    player.start(d, list, idx);
   } catch (e) { toast(e.message, true); }
 }
 
-/** Plays a file in the app (browser-friendly files, if preferred) or in
- *  the external player. */
-async function playFile(d, fileId, { builtin } = {}) {
-  const f = findFile(d, fileId) || { name: '', file_id: fileId };
-  const label = [d.name, epCode(f), f.title].filter(Boolean).join(' · ');
-  const useBuiltin = builtin ?? (app.state?.flags?.prefer_builtin && playableName(f.name));
-  if (useBuiltin) {
-    const src = f.url && !f.url.startsWith('file:') ? f.url : `/media/${fileId}`;
-    openBuiltin(src, label, d, fileId);
-    POST('/api/play', { file_id: fileId, record_only: true }).catch(() => {});
-    return;
-  }
-  try {
-    await POST('/api/play', { file_id: fileId });
-    toast(`Opening ${label} in ${playerName()}`);
-  } catch (e) {
-    toast(e.message, true);
-  }
-}
-
-function openBuiltin(src, label, d, fileId) {
-  const root = $('#overlay-root');
-  const video = h('video', { controls: true, autoplay: true, playsinline: true });
-  const close = () => { video.pause(); video.removeAttribute('src'); video.load(); root.replaceChildren(); document.removeEventListener('keydown', onKey); };
-  const onKey = (e) => { if (e.key === 'Escape') close(); };
-  document.addEventListener('keydown', onKey);
-  const overlay = h('div', { class: 'player-overlay' },
-    h('div', { class: 'player-bar' },
-      h('div', { class: 't', text: label }),
-      h('button', { class: 'btn small', onclick() { close(); playFile(d, fileId, { builtin: false }); } }, icon('external'), `Open in ${playerName()}`),
-      h('button', { class: 'icon-btn', title: 'Close (Esc)', onclick: close }, icon('x'))),
-    video);
-  // The extension only hints at the codec; if the browser can't decode
-  // it, say so and offer the external player.
-  video.onerror = () => {
-    overlay.append(h('div', { class: 'player-error' }, h('div', {},
-      h('p', { text: "This video can't play inside the app — usually because it's HEVC/x265 or an MKV file." }),
-      h('div', { class: 'actions', style: 'justify-content:center' },
-        h('button', { class: 'btn primary', onclick() { close(); playFile(d, fileId, { builtin: false }); } }, icon('play'), `Open in ${playerName()}`),
-        h('button', { class: 'btn', onclick: close, text: 'Close' })))));
-  };
-  video.src = src;
-  root.replaceChildren(overlay);
-}
-
 // ------------------------------------------------------------- grids
-const MOVIE_FILTERS = [['year', 'Any year'], ['genre', 'Any genre'], ['quality', 'Any quality'], ['platform', 'Any platform'], ['folder', 'All folders'], ['audio', 'Any audio']];
-const SHOW_FILTERS = [['year', 'Any year'], ['genre', 'Any genre'], ['status', 'Any status'], ['audio', 'Any audio']];
-const MIXED_FILTERS = [['kind', 'All types'], ['year', 'Any year'], ['genre', 'Any genre'], ['audio', 'Any audio']];
 const SORTS = {
-  movie: [['added', 'Recently added'], ['title', 'Title A–Z'], ['year', 'Newest first'], ['rating', 'Top rated']],
-  show: [['updated', 'Recently updated'], ['added', 'Recently added'], ['title', 'Title A–Z'], ['year', 'Newest first'], ['rating', 'Top rated']],
-  mixed: [['added', 'Recently added'], ['title', 'Title A–Z'], ['year', 'Newest first'], ['rating', 'Top rated']],
+  lecture: [['added', 'sortNewest'], ['oldest', 'sortOldest'], ['title', 'sortTitle'], ['longest', 'sortLongest'], ['shortest', 'sortShortest']],
+  series: [['updated', 'sortUpdated'], ['added', 'sortNewest'], ['title', 'sortTitle']],
+  quran: [['title', 'sortTitle'], ['added', 'sortNewest']],
+  mixed: [['added', 'sortNewest'], ['title', 'sortTitle'], ['longest', 'sortLongest'], ['shortest', 'sortShortest']],
+  saved: [['watchlist', 'sortSaved'], ['added', 'sortNewest'], ['title', 'sortTitle']],
 };
-
 function selectBox(options, value, onchange, placeholderLabel) {
   const sel = h('select', { onchange() { onchange(sel.value); sel.classList.toggle('active', !!sel.value); } },
     placeholderLabel != null ? h('option', { value: '', text: placeholderLabel }) : null,
@@ -435,15 +607,19 @@ function selectBox(options, value, onchange, placeholderLabel) {
   return h('div', { class: 'select' }, sel);
 }
 
-/** A poster grid with filters, sort and infinite scroll. */
+/** A grid of cards with filters, sort and infinite scroll. */
 async function gridPage(o) {
   const key = location.hash;
-  const sortKey = o.mixed ? 'mixed' : o.kind;
-  const memo = app.gridMemo[key] || (app.gridMemo[key] = {
-    f: { sort: o.sort || (o.kind === 'show' ? 'updated' : 'added') }, loaded: 0, top: 0,
-  });
-  const sorts = o.sort === 'watchlist' ? [['watchlist', 'Recently saved'], ...SORTS.mixed] : SORTS[sortKey];
-  const defs = o.mixed ? MIXED_FILTERS : (o.kind === 'show' ? SHOW_FILTERS : MOVIE_FILTERS);
+  const sortSet = SORTS[o.sorts] || SORTS.mixed;
+  const memo = app.gridMemo[key] || (app.gridMemo[key] = { f: { sort: sortSet[0][0] }, loaded: 0, top: 0 });
+  const defs = [];
+  if (o.mixed) defs.push(['kind', t('allTypes')]);
+  if (!o.speaker) defs.push(['speaker', t('anySpeaker')]);
+  if (!o.topic && o.kind !== 'quran') defs.push(['topic', t('anyTopic')]);
+  defs.push(['language', t('anyLanguage')]);
+  if (o.kind !== 'quran') defs.push(['length', t('anyLength')]);
+  defs.push(['media', t('anyMedia')]);
+  defs.push(['folder', t('allFolders')]);
 
   const sub = h('div', { class: 'subtitle', text: ' ' });
   const filters = h('div', { class: 'filters' });
@@ -451,61 +627,49 @@ async function gridPage(o) {
   const more = h('div', { class: 'loading-more' });
   const sentinel = h('div', { class: 'sentinel' });
   const head = h('div', { class: 'actions', style: 'justify-content:space-between;align-items:flex-end' },
-    h('div', {}, h('h1', { class: 'page-title', text: o.title }), sub), o.headActions || null);
+    h('div', { style: 'display:flex;gap:18px;align-items:center' }, o.headArt || null, h('div', {}, h('h1', { class: 'page-title', text: o.title }), sub)), o.headActions || null);
   page.append(h('div', { class: 'wrap' }, head, filters, grid, more, sentinel));
 
-  const base = () => ({ kind: o.kind, root: o.root, watchlist: o.watchlist, q: o.q, ...memo.f });
+  const base = () => ({ kind: o.kind, root: o.root, speaker: o.speaker, topic: o.topic, watchlist: o.watchlist, q: o.q, ...memo.f });
   let offset = 0, done = false, loading = false, gen = 0;
 
   async function loadFacets() {
     let f;
     try { f = await GET('/api/facets?' + qs(base())); } catch { return; }
-    const opt = (list, fmt) => list.map((x) => [x.value, fmt ? fmt(x) : `${x.label}`]);
     const lists = {
-      year: opt(f.years),
-      genre: opt(f.genres),
-      quality: opt(f.qualities),
-      platform: opt(f.platforms),
-      folder: opt(f.folders),
-      audio: [...opt(f.audios), ['single', 'Single audio']],
-      status: [['ongoing', 'Ongoing'], ['ended', 'Ended']],
-      kind: [['movie', 'Movies'], ['show', 'TV shows']],
+      kind: [['lecture', t('lectures')], ['series', t('series')], ['quran', t('quran')]],
+      speaker: f.speakers.map((x) => [x.value, `${x.value} (${num(x.count)})`]),
+      topic: f.topics.map((x) => [x.value, `${topicName(x.value)} (${num(x.count)})`]),
+      language: f.languages.map((x) => [x.value, `${langName(x.value)} (${num(x.count)})`]),
+      length: [['short', t('short')], ['medium', t('medium')], ['long', t('long')]],
+      media: f.media.map((x) => [x.value, t(x.value)]),
+      folder: f.folders.map((x) => [x.value, x.value]),
     };
-    const boxes = defs.map(([name, label]) => {
-      const box = selectBox(lists[name], memo.f[name], (v) => { memo.f[name] = v || undefined; reset(); }, label);
-      if (!lists[name].length && !memo.f[name]) {
-        box.firstChild.disabled = true;
-        box.title = name === 'genre' ? 'Add a TMDB key in Settings → Movie info to filter by genre' : 'Nothing to filter by yet';
-      }
-      return box;
-    });
+    const boxes = defs
+      .filter(([name]) => !(name === 'folder' && !lists.folder.length && !memo.f.folder))
+      .filter(([name]) => !(name === 'media' && lists.media.length < 2 && !memo.f.media))
+      .map(([name, label]) => selectBox(lists[name], memo.f[name], (v) => { memo.f[name] = v || undefined; reset(); }, label));
     const active = defs.some(([n]) => memo.f[n]);
     fill(filters, ...boxes,
-      active ? h('button', { class: 'clear-filters', text: 'Clear', onclick() { for (const [n] of defs) delete memo.f[n]; reset(); } }) : null,
+      active ? h('button', { class: 'clear-filters', text: t('clear'), onclick() { for (const [n] of defs) delete memo.f[n]; reset(); } }) : null,
       h('div', { class: 'spacer' }),
-      h('span', { class: 'sort-label', text: 'Sort' }),
-      selectBox(sorts, memo.f.sort, (v) => { memo.f.sort = v; reset(); }));
+      h('span', { class: 'sort-label', text: t('sort') }),
+      selectBox(sortSet.map(([v, k]) => [v, t(k)]), memo.f.sort, (v) => { memo.f.sort = v; reset(); }));
   }
 
-  async function loadMore(n = 60) {
+  async function loadMore(n = 48) {
     if (loading || done) return;
     loading = true;
     const my = gen;
-    more.textContent = offset ? 'Loading…' : '';
     let p;
-    try {
-      p = await GET('/api/titles?' + qs({ ...base(), offset, limit: n }));
-    } catch (e) {
-      loading = false;
-      more.textContent = e.message;
-      return;
-    }
+    try { p = await GET('/api/titles?' + qs({ ...base(), offset, limit: n })); }
+    catch (e) { loading = false; more.textContent = e.message; return; }
     if (my !== gen) return;
-    sub.textContent = o.subtitle ? o.subtitle(p.total) : plural(p.total, o.noun);
+    sub.textContent = t(o.noun, p.total);
     if (!p.total) {
-      const filtered = defs.some(([n]) => memo.f[n]);
-      grid.replaceChildren(filtered
-        ? emptyState('search', 'No matches', 'Nothing fits these filters.', h('button', { class: 'btn', text: 'Clear filters', onclick() { for (const [n] of defs) delete memo.f[n]; reset(); } }))
+      const filtered = defs.some(([n2]) => memo.f[n2]);
+      fill(grid, filtered
+        ? emptyState('search', t('noMatches'), t('noMatchesText'), h('button', { class: 'btn', text: t('clearFilters'), onclick() { for (const [n2] of defs) delete memo.f[n2]; reset(); } }))
         : o.empty ? emptyState(...o.empty) : libraryEmpty());
       grid.style.display = 'block';
     } else {
@@ -518,69 +682,75 @@ async function gridPage(o) {
     more.textContent = '';
     loading = false;
   }
+  function reset() { gen++; offset = 0; done = false; loading = false; grid.replaceChildren(); loadFacets(); loadMore(); }
 
-  function reset() {
-    gen++;
-    offset = 0; done = false; loading = false;
-    grid.replaceChildren();
-    loadFacets();
-    loadMore();
-  }
-
-  const obs = new IntersectionObserver((entries) => {
-    if (entries.some((e) => e.isIntersecting)) loadMore();
-  }, { root: page, rootMargin: '900px' });
+  const obs = new IntersectionObserver((entries) => { if (entries.some((e) => e.isIntersecting)) loadMore(); }, { root: page, rootMargin: '900px' });
   obs.observe(sentinel);
-
   loadFacets();
-  await loadMore(Math.min(500, Math.max(60, memo.loaded)));
+  await loadMore(Math.min(400, Math.max(48, memo.loaded)));
   page.scrollTop = memo.top;
-
-  return {
-    cleanup() { obs.disconnect(); memo.top = page.scrollTop; },
-    refresh() { memo.loaded = 0; reset(); },
-  };
+  return { cleanup() { obs.disconnect(); memo.top = page.scrollTop; }, refresh() { memo.loaded = 0; reset(); } };
 }
 
 function libraryEmpty() {
   if (!app.state?.sources?.length) {
-    return emptyState('folder', 'Your library is empty', 'Add a link to your media server, or a folder on this PC, to get started.',
-      h('a', { class: 'btn primary', href: '#/settings/sources' }, icon('plus'), 'Add a source'));
+    return emptyState('folder', t('emptyTitle'), t('emptyText'), h('a', { class: 'btn primary', href: '#/settings/sources' }, icon('plus'), t('addSource')));
   }
   const busy = app.state.job.running;
-  return emptyState(busy ? 'sync' : 'film', busy ? 'Syncing your sources…' : 'Nothing here yet',
-    busy ? 'Titles appear as soon as each source finishes syncing.' : 'Sync your sources to fill the library.',
-    busy ? null : h('button', { class: 'btn primary', async onclick() { await POST('/api/sync').catch((e) => toast(e.message, true)); refreshState(); } }, icon('sync'), 'Sync now'));
+  return emptyState(busy ? 'sync' : 'mic', busy ? t('syncingTitle') : t('nothingYet'), busy ? t('syncingText') : t('nothingYetText'),
+    busy ? null : h('button', { class: 'btn primary', async onclick() { await POST('/api/sync').catch((e) => toast(e.message, true)); refreshState(); } }, icon('sync'), t('syncNow')));
 }
 
 function sourcePage(name) {
   const src = app.state?.sources?.find((s) => s.name === name);
-  if (!src) return gridPage({ root: name, title: name, noun: 'title', mixed: true });
-  const kind = src.kind === 'shows' ? 'show' : 'movie';
+  const kind = src ? { lectures: 'lecture', series: 'series', quran: 'quran' }[src.kind] : undefined;
   const head = h('div', { class: 'actions' },
-    h('button', { class: 'btn', async onclick() { await POST(`/api/sources/${encodeURIComponent(name)}/sync`).catch((e) => toast(e.message, true)); refreshState(); } }, icon('sync'), 'Sync'),
-    h('a', { class: 'btn ghost', href: '#/settings/sources' }, icon('sliders'), 'Manage'));
-  return gridPage({ root: name, kind, title: name, noun: kind, headActions: head });
+    h('button', { class: 'btn', async onclick() { await POST(`/api/sources/${encodeURIComponent(name)}/sync`).catch((e) => toast(e.message, true)); refreshState(); } }, icon('sync'), t('sync')),
+    h('a', { class: 'btn ghost', href: '#/settings/sources' }, icon('sliders'), t('settings')));
+  return gridPage({ root: name, kind, title: name, noun: 'nItems', sorts: kind || 'mixed', mixed: !kind, headActions: head });
 }
-
 function searchPage(q) {
   const input = $('#search');
   if (document.activeElement !== input) input.value = q;
-  return gridPage({ q, title: q ? `Results for “${q}”` : 'Search', noun: 'result', mixed: true,
-    empty: ['search', 'No matches', 'Try fewer words, or another spelling.'] });
+  return gridPage({ q, title: t('resultsFor', q), noun: 'nResults', mixed: true, sorts: 'mixed', empty: ['search', t('noMatches'), ''] });
+}
+async function speakerPage(name) {
+  const list = await GET('/api/speakers?' + qs({ q: name })).catch(() => ({ speakers: [] }));
+  const s = list.speakers.find((x) => x.name === name);
+  const headArt = h('div', { style: 'width:84px' }, avatar(name, s?.image));
+  return gridPage({ speaker: name, title: name, noun: 'nItems', mixed: true, sorts: 'mixed', headArt });
 }
 
+async function speakersPage() {
+  const wrap = h('div', { class: 'wrap' });
+  page.append(wrap);
+  const search = h('input', { class: 'input', placeholder: t('searchSpeakers'), style: 'max-width:340px' });
+  const box = h('div', { class: 'people' });
+  const sub = h('div', { class: 'subtitle' });
+  wrap.append(h('div', { class: 'actions', style: 'justify-content:space-between;align-items:flex-end' }, h('div', {}, h('h1', { class: 'page-title', text: t('speakers') }), sub), search), box);
+  const { speakers } = await GET('/api/speakers');
+  const render = () => {
+    const q = search.value.trim().toLowerCase();
+    const list = q ? speakers.filter((s) => s.name.toLowerCase().includes(q)) : speakers;
+    sub.textContent = t('nSpeakers', list.length);
+    fill(box, list.length ? list.map(personCard) : emptyState('users', t('noMatches'), ''));
+  };
+  search.addEventListener('input', render);
+  render();
+}
+async function topicsPage() {
+  const wrap = h('div', { class: 'wrap' });
+  page.append(wrap);
+  const f = await GET('/api/facets');
+  wrap.append(h('h1', { class: 'page-title', text: t('topics') }), h('div', { class: 'subtitle', text: t('nItems', f.topics.reduce((a, x) => a + x.count, 0)) }));
+  wrap.append(f.topics.length ? h('div', { class: 'topics' }, f.topics.map((x) => topicTile(x.value, x.count))) : libraryEmpty());
+}
 async function recentPage() {
   const wrap = h('div', { class: 'wrap' });
   page.append(wrap);
   const d = await GET('/api/recent');
-  wrap.append(h('h1', { class: 'page-title', text: 'Recently played' }),
-    h('div', { class: 'subtitle', text: plural(d.total, 'title') }));
-  if (!d.items.length) {
-    wrap.append(emptyState('history', 'Nothing played yet', 'Titles you play show up here, newest first.'));
-  } else {
-    wrap.append(h('div', { class: 'grid' }, d.items.map(card)));
-  }
+  wrap.append(h('h1', { class: 'page-title', text: t('recent') }), h('div', { class: 'subtitle', text: t('nItems', d.total) }));
+  wrap.append(d.items.length ? h('div', { class: 'grid' }, d.items.map(card)) : emptyState('history', t('nothingPlayed'), t('nothingPlayedText')));
 }
 
 // -------------------------------------------------------------- home
@@ -588,351 +758,481 @@ async function homePage() {
   const wrap = h('div', { class: 'wrap' });
   page.append(wrap);
   if (!app.state) await refreshState();
-  if (!app.state?.sources?.length) {
-    wrap.append(welcome());
-    return;
-  }
-  const { rows } = await GET('/api/home');
-  if (!rows.length) {
-    wrap.append(libraryEmpty());
-    return { refresh: () => route() };
-  }
-  // A featured title with artwork, when movie info is available.
-  const pool = [...(rows.find((r) => r.title === 'Top rated movies')?.items || []), ...(rows.find((r) => r.title === 'Recently added movies')?.items || [])];
-  const featured = pool.slice(0, 12)[Math.floor(Math.random() * Math.min(12, pool.length))];
-  const heroSlot = h('div');
-  wrap.append(heroSlot);
-  if (featured && app.state.flags.tmdb) {
-    GET('/api/titles/' + featured.id).then((d) => {
-      if (!d.backdrop) return;
-      heroSlot.replaceWith(h('div', { class: 'hero-home' },
-        h('div', { class: 'bg', style: `background-image:url("${encodeURI(d.backdrop)}")` }),
-        h('div', { class: 'content' },
-          h('div', { class: 'eyebrow', text: 'Featured from your library' }),
-          h('h2', { text: d.name }),
-          h('div', { class: 'meta-row', style: 'margin-bottom:12px' },
-            d.year && h('span', { text: years(d) }),
-            d.rating && h('span', { class: 'star' }, icon('star'), d.rating.toFixed(1)),
-            d.genres.slice(0, 3).join(' · ')),
-          d.overview && h('p', { text: d.overview }),
-          h('div', { class: 'actions' },
-            h('button', { class: 'btn primary big', onclick: () => playFile(d, d.next_up) }, icon('play'), 'Play'),
-            h('a', { class: 'btn big', href: '#/title/' + d.id }, icon('info'), 'More info')))));
-    }).catch(() => {});
-  }
-  for (const r of rows) {
-    wrap.append(
-      h('div', { class: 'row-head' }, h('h2', { text: r.title }), r.link && h('a', { href: r.link, text: 'See all' })),
-      h('div', { class: 'strip' }, r.items.map(card)));
-  }
+  if (!app.state?.sources?.length) { wrap.append(welcome()); return; }
+  const [{ rows }, sp, facets] = await Promise.all([GET('/api/home'), GET('/api/speakers').catch(() => ({ speakers: [] })), GET('/api/facets').catch(() => null)]);
+  if (!rows.length) { wrap.append(libraryEmpty()); return { refresh: () => route() }; }
+  const rowTitle = (k) => k.startsWith('topic:') ? topicName(k.slice(6)) : t({ continue: 'rowContinue', lectures: 'rowLectures', series: 'rowSeries', quran: 'rowQuran', saved: 'rowSaved' }[k] || k);
+  const head = (title, link) => h('div', { class: 'row-head' }, h('h2', { text: title }), link && h('a', { href: link, text: t('seeAll') }));
+  const ordered = [...rows];
+  for (const r of ordered.splice(0, Math.min(2, ordered.length))) wrap.append(head(rowTitle(r.key), r.link), h('div', { class: 'strip' }, r.items.map(card)));
+  if (sp.speakers.length) wrap.append(head(t('rowSpeakers'), '#/speakers'), h('div', { class: 'strip people-strip' }, sp.speakers.slice(0, 24).map(personCard)));
+  if (facets?.topics?.length) wrap.append(head(t('rowTopics'), '#/topics'), h('div', { class: 'chips' }, facets.topics.slice(0, 16).map((x) => h('a', { class: 'chip-link', href: '#/topic/' + encodeURIComponent(x.value), text: `${topicName(x.value)} · ${num(x.count)}` }))));
+  for (const r of ordered) wrap.append(head(rowTitle(r.key), r.link), h('div', { class: 'strip' }, r.items.map(card)));
   return { refresh: () => route() };
 }
-
 function welcome() {
-  return h('div', { class: 'empty' },
-    h('div', { class: 'big-icon' }, icon('film')),
-    h('h2', { text: 'Welcome to medialib' }),
-    h('div', { text: 'Add a link to your media server (or a folder on this PC). Everything inside is indexed into a searchable poster library.' }),
-    h('div', { class: 'actions' }, h('a', { class: 'btn primary big', href: '#/settings/sources' }, icon('plus'), 'Add your first source')));
+  return h('div', { class: 'welcome' },
+    h('div', { class: 'ayah', text: 'اقْرَأْ بِاسْمِ رَبِّكَ الَّذِي خَلَقَ' }),
+    h('div', { class: 'ayah-tr', text: t('ayahTr') }),
+    h('h2', { text: t('welcomeTitle') }),
+    h('p', { text: t('welcomeText') }),
+    h('a', { class: 'btn primary big', href: '#/settings/sources' }, icon('plus'), t('startAdd')));
 }
 
 // ------------------------------------------------------------ detail
 async function detailPage(id) {
   const d = await GET('/api/titles/' + id);
-  const isShow = d.kind === 'show';
-  const listHash = isShow ? '#/shows' : '#/movies';
-
-  const backdrop = d.backdrop
-    ? h('div', { class: 'backdrop', style: `background-image:url("${encodeURI(d.backdrop)}")` })
-    : d.poster ? h('div', { class: 'backdrop blur', style: `background-image:url("${encodeURI(d.poster)}")` }) : null;
-
-  const episodesCount = (d.seasons || []).reduce((n, s) => n + s.episodes.length, 0);
-  const next = findFile(d, d.next_up);
-  const meta = h('div', { class: 'meta-row' },
-    years(d) && h('span', { text: years(d) }),
-    d.rating && h('span', { class: 'star' }, icon('star'), d.rating.toFixed(1)),
-    isShow && d.ongoing && h('span', { class: 'chip green', text: 'Ongoing' }),
-    d.quality && h('span', { class: 'chip outline', text: d.quality }),
-    d.audio && h('span', { class: 'chip teal', text: d.audio === 'multi' ? 'Multi Audio' : 'Dual Audio' }),
-    d.platform && h('span', { class: 'chip outline', text: d.platform }),
-    isShow ? h('span', { style: 'color:var(--muted)', text: `${plural(d.seasons.length, 'season')} · ${plural(episodesCount, 'episode')}` })
-      : h('span', { style: 'color:var(--muted)', text: [runtime(d.runtime), d.total_size && size(d.total_size)].filter(Boolean).join(' · ') }));
-
-  const genres = (d.genres.length || d.country) ? h('div', { class: 'genres' },
-    d.genres.map((g) => h('span', { class: 'pill', text: g })),
-    d.country && h('span', { class: 'place' }, icon('pin'), d.country)) : null;
+  const kindName = { lecture: t('lectures'), series: t('series'), quran: t('quran') }[d.kind];
+  const listHash = { lecture: '#/lectures', series: '#/series', quran: '#/quran' }[d.kind];
+  const next = d.items.find((i) => i.file_id === d.next_up);
+  const started = next && next.position > 30;
 
   const mark = h('button', {
-    class: 'btn big square' + (d.in_watchlist ? ' on' : ''), title: d.in_watchlist ? 'Remove from watchlist' : 'Add to watchlist',
+    class: 'btn big square' + (d.saved ? ' on' : ''), title: d.saved ? t('saveOn') : t('save'),
     async onclick() {
-      d.in_watchlist = !d.in_watchlist;
-      mark.classList.toggle('on', d.in_watchlist);
-      mark.title = d.in_watchlist ? 'Remove from watchlist' : 'Add to watchlist';
-      try { await POST('/api/watchlist', { title_id: d.id, on: d.in_watchlist }); refreshState(); toast(d.in_watchlist ? 'Added to watchlist' : 'Removed from watchlist'); }
-      catch (e) { toast(e.message, true); }
+      d.saved = !d.saved;
+      mark.classList.toggle('on', d.saved);
+      try { await POST('/api/watchlist', { title_id: d.id, on: d.saved }); refreshState(); toast(d.saved ? t('saveOn') : t('save')); } catch (e) { toast(e.message, true); }
     },
   }, icon('bookmark'));
-
-  const playLabel = isShow ? `Play ${epCode(next || {}) || ''}`.trim() : 'Play';
-  const nextPlayable = next && playableName(next.name);
+  const playLabel = d.kind === 'lecture' && d.items.length <= 1
+    ? (started ? t('resume') : t('play'))
+    : started ? t('resume') : t('playFrom', next ? itemCode(d, next) : '');
+  const isYt = d.media === 'youtube';
   const actions = h('div', { class: 'actions detail-actions' },
-    d.next_up && h('button', { class: 'btn primary big', onclick: () => playFile(d, d.next_up).then(() => setTimeout(() => refreshDetail(d.id), 600)) }, icon('play'), playLabel),
-    isShow && h('button', {
-      class: 'btn big', async onclick() {
-        try {
-          const r = await POST('/api/playlist', { title_id: d.id, from_file_id: d.next_up });
-          toast(`Playlist of ${plural(r.count, 'episode')} sent to ${playerName()}`);
-          setTimeout(() => refreshDetail(d.id), 600);
-        } catch (e) { toast(e.message, true); }
-      },
-    }, icon('layers'), 'Play as playlist'),
-    !isShow && nextPlayable && h('button', {
-      class: 'btn big', onclick: () => playFile(d, d.next_up, { builtin: !app.state.flags.prefer_builtin }),
-    }, icon(app.state.flags.prefer_builtin ? 'external' : 'eye'), app.state.flags.prefer_builtin ? `Open in ${playerName()}` : 'Watch here'),
+    d.items.length && h('button', { class: 'btn primary big', onclick: () => player.start(d, d.items, Math.max(0, d.items.indexOf(next))) }, icon('play'), playLabel),
+    d.items.length > 1 && h('button', { class: 'btn big', onclick: () => player.start(d, d.items, 0) }, icon('layers'), t('playAll')),
     mark,
-    h('button', {
-      class: 'btn big square', title: 'Open folder',
-      async onclick() { try { await POST('/api/open-folder', { title_id: d.id }); } catch (e) { toast(e.message, true); } },
-    }, icon('folder')));
+    isYt ? h('button', { class: 'btn big square', title: t('openYouTube'), onclick: () => POST('/api/open-url', { url: d.dir_url }).catch(() => POST('/api/play', { file_id: d.next_up })) }, icon('youtube'))
+      : h('button', { class: 'btn big square', title: t('openFolder'), async onclick() { try { await POST('/api/open-folder', { title_id: d.id }); } catch (e) { toast(e.message, true); } } }, icon('folder')));
 
-  const fix = h('div', { class: 'fix-match' },
-    app.state?.flags?.tmdb
-      ? h('button', { class: 'link muted', text: d.tmdb_status === 'ok' ? 'Wrong info? Fix the match' : 'No info found — search TMDB', onclick: () => fixMatch(d) })
-      : h('a', { class: 'link muted', href: '#/settings/info', text: 'Add posters, ratings and plots: set up Movie info' }));
+  const meta = h('div', { class: 'meta-row' },
+    d.kind !== 'lecture' && h('span', { class: 'chip ' + (d.kind === 'quran' ? 'green' : 'gold'), text: d.kind === 'quran' ? t('quranOne') : t('seriesOne') }),
+    d.kind === 'series' && h('span', { text: t('nEpisodes', d.items.length) }),
+    d.kind === 'quran' && h('span', { text: t('nSurahs', d.items.length) }),
+    d.kind === 'lecture' && d.items.length > 1 && h('span', { text: t('nParts', d.items.length) }),
+    d.total_duration && h('span', { text: human(d.total_duration) }),
+    d.language && h('span', { class: 'chip outline', text: langName(d.language) }),
+    d.media && h('span', { class: 'chip outline', text: t(d.media) }),
+    d.year && h('span', { style: 'color:var(--muted)', text: digits(d.year) }));
+  const topics = d.topics.length ? h('div', { class: 'genres' }, d.topics.map((k) => h('a', { class: 'chip-link', href: '#/topic/' + encodeURIComponent(k), text: topicName(k) }))) : null;
+  let desc = null;
+  if (d.description) {
+    desc = h('p', { class: 'description', text: d.description });
+    if (d.description.length > 300) {
+      const toggle = h('button', { class: 'link', text: t('more'), onclick() { desc.classList.toggle('open'); toggle.textContent = desc.classList.contains('open') ? t('less') : t('more'); } });
+      desc = h('div', {}, desc, toggle);
+    }
+  }
+  const speakerLine = d.speaker ? h('a', { class: 'speaker-line', href: '#/speaker/' + encodeURIComponent(d.speaker) },
+    h('span', { class: 'mini', style: d.speaker_image ? '' : `background:${hashColor(d.speaker)}` }, d.speaker_image ? h('img', { src: d.speaker_image, alt: '' }) : initials(d.speaker)), d.speaker) : null;
 
-  const hero = h('div', { class: 'detail-hero' }, backdrop,
+  const hero = h('div', { class: 'detail-hero' },
+    d.poster ? h('div', { class: 'backdrop', style: `background-image:url("${encodeURI(d.poster)}")` }) : null,
     h('div', { class: 'detail-inner' },
-      h('a', { class: 'back', onclick() { app.navCount > 1 ? history.back() : go(listHash); } }, icon('chevronLeft'), isShow ? 'TV Shows' : 'Movies'),
+      h('a', { class: 'back', onclick() { app.navCount > 1 ? history.back() : go(listHash); } }, icon('chevronLeft'), kindName),
       h('div', { class: 'detail-top' },
-        h('div', { class: 'detail-poster' }, d.poster ? h('img', { src: d.poster, alt: '', onerror() { this.replaceWith(placeholder(d)); } }) : placeholder(d)),
-        h('div', { class: 'detail-info' },
-          h('h1', { text: d.name }),
-          meta, genres,
-          d.tagline && h('p', { class: 'tagline', text: d.tagline }),
-          d.overview && h('p', { class: 'overview', text: d.overview }),
-          d.credits && h('div', { class: 'credits' }, d.credits_label, h('b', { text: d.credits })),
-          actions, fix))));
+        h('div', { class: 'detail-art' }, art(d, { big: true })),
+        h('div', { class: 'detail-info' }, h('h1', { text: d.name }), speakerLine, meta, topics, desc, actions))));
 
-  const container = h('div');
-  container.append(hero);
-  if (isShow) container.append(...seasonsView(d));
-  else container.append(filesView(d));
+  const container = h('div', {}, hero);
+  if (d.kind === 'quran') container.append(surahList(d));
+  else if (d.items.length > 1 || d.kind === 'series') container.append(...itemsView(d));
   page.append(container);
-  return { cleanup() {} };
+  return { cleanup() {}, detailId: d.id };
 }
-
+function itemCode(d, it) {
+  if (d.kind === 'quran' && it.surah) return `${t('surah')} ${digits(it.surah.number)}`;
+  if (it.number == null) return '';
+  return `${d.kind === 'lecture' ? t('part') : t('episode')} ${digits(it.number)}`;
+}
 async function refreshDetail(id) {
   if (location.hash !== '#/title/' + id) return;
   const top = page.scrollTop;
   page.replaceChildren();
-  app.pageCtl = (await detailPage(id)) || null;
+  app.pageCtl = (await detailPage(id).catch(() => null)) || null;
   page.scrollTop = top;
 }
-
-function seasonsView(d) {
-  if (!d.seasons.length) return [h('div', { class: 'files' }, h('div', { class: 'subtitle', text: 'No episodes found.' }))];
-  const nextSeason = d.seasons.find((s) => s.episodes.some((e) => e.file_id === d.next_up || (e.versions || []).some((v) => v.file_id === d.next_up)))?.season;
-  let current = app.detailSeason[d.id] ?? nextSeason ?? d.seasons[0].season;
-  if (!d.seasons.some((s) => s.season === current)) current = d.seasons[0].season;
-
+function checkBtn(it) {
+  const b = h('button', {
+    class: 'check' + (it.watched ? ' on' : ''), title: it.watched ? t('markUnwatched') : t('markWatched'),
+    async onclick(ev) {
+      ev.stopPropagation();
+      it.watched = !it.watched;
+      b.classList.toggle('on', it.watched);
+      b.replaceChildren(icon(it.watched ? 'checkCircle' : 'check'));
+      await POST('/api/watched', { file_id: it.file_id, on: it.watched }).catch((e) => toast(e.message, true));
+    },
+  }, icon(it.watched ? 'checkCircle' : 'check'));
+  return b;
+}
+function itemsView(d) {
+  const seasons = d.seasons.length > 1 ? d.seasons : null;
+  let current = seasons ? (app.detailSeason[d.id] ?? seasons.find((s) => s.items.some((i) => i.file_id === d.next_up))?.season ?? seasons[0].season) : null;
   const bar = h('div', { class: 'seasons-bar' });
-  const list = h('div', { class: 'episodes' });
+  const list = h('div', { class: 'items' });
   function render() {
-    const s = d.seasons.find((x) => x.season === current);
-    bar.replaceChildren(
-      ...d.seasons.map((x) => h('button', {
-        class: 'season-pill' + (x.season === current ? ' on' : ''),
-        onclick() { current = x.season; app.detailSeason[d.id] = current; render(); },
-      }, x.season === 0 ? 'Specials' : `Season ${x.season}`, h('small', { text: x.episodes.length }))),
-      h('span', { class: 'total', text: `${plural(s.episodes.length, 'episode')}${s.size ? ' · ' + size(s.size) : ''}` }));
-    list.replaceChildren(...s.episodes.map((e) => episodeRow(d, e)));
+    const items = seasons ? seasons.find((s) => s.season === current).items : d.items;
+    const total = items.reduce((a, i) => a + (i.duration || 0), 0);
+    fill(bar,
+      seasons && seasons.map((s) => h('button', { class: 'season-pill' + (s.season === current ? ' on' : ''), onclick() { current = s.season; app.detailSeason[d.id] = current; render(); } },
+        `${t('part')} ${digits(s.season)}`, h('small', { text: num(s.items.length) }))),
+      h('span', { class: 'total', text: [d.kind === 'lecture' ? t('nParts', items.length) : t('nEpisodes', items.length), total && human(total)].filter(Boolean).join(' · ') }));
+    fill(list, items.map((it) => itemRow(d, it, items)));
   }
   render();
   return [bar, list];
 }
-
-function episodeRow(d, e) {
-  const isNext = e.file_id === d.next_up || (e.versions || []).some((v) => v.file_id === d.next_up);
-  const title = e.title || (e.episode != null ? `Episode ${e.episode}` : e.name);
-  const still = h('div', { class: 'still' },
-    e.still ? h('img', { src: e.still, loading: 'lazy', alt: '' }) : h('div', { class: 'ep-num', text: e.episode != null ? pad(e.episode) : '▶' }),
-    h('div', { class: 'play-hint' }, h('span', { class: 'round-play' }, icon('play'))));
-  const check = h('button', {
-    class: 'ep-check' + (e.watched ? ' on' : ''), title: e.watched ? 'Mark as unwatched' : 'Mark as watched',
-    async onclick(ev) {
-      ev.stopPropagation();
-      e.watched = !e.watched;
-      check.classList.toggle('on', e.watched);
-      check.title = e.watched ? 'Mark as unwatched' : 'Mark as watched';
-      const ids = [e.file_id, ...(e.versions || []).map((v) => v.file_id)];
-      try { for (const fid of new Set(ids)) await POST('/api/watched', { file_id: fid, on: e.watched }); }
-      catch (err) { toast(err.message, true); }
-    },
-  }, icon(e.watched ? 'checkCircle' : 'check'));
-  const versions = (e.versions || []).length > 1 ? h('div', { class: 'versions' },
-    e.versions.map((v) => h('button', {
-      class: 'version', title: v.name,
-      text: [v.quality, v.audio === 'dual' ? 'Dual audio' : v.audio === 'multi' ? 'Multi audio' : v.audio === 'dubbed' ? 'Dubbed' : 'Original', v.size && size(v.size)].filter(Boolean).join(' · '),
-      onclick(ev) { ev.stopPropagation(); playFile(d, v.file_id).then(() => setTimeout(() => refreshDetail(d.id), 600)); },
-    }))) : null;
-  return h('div', {
-    class: 'episode' + (isNext ? ' next' : ''), title: e.name,
-    onclick: () => playFile(d, e.file_id).then(() => setTimeout(() => refreshDetail(d.id), 600)),
-  },
-  still,
-  h('div', { class: 'ep-body' },
-    h('div', { class: 'ep-code' }, epCode(e) || 'Episode', isNext && h('span', { class: 'up-next', text: 'Up next' })),
-    h('div', { class: 'ep-title', text: title }),
-    h('div', { class: 'ep-meta', text: [fmtDate(e.air_date), e.runtime && `${e.runtime} min`, e.size && size(e.size)].filter(Boolean).join(' · ') }),
-    e.overview && h('div', { class: 'ep-overview', text: e.overview }),
-    versions),
-  check);
+function itemRow(d, it, items) {
+  const isNext = it.file_id === d.next_up;
+  const playing = player.current()?.file_id === it.file_id;
+  const pct = it.position && it.duration ? Math.min(100, (100 * it.position) / it.duration) : 0;
+  const thumb = it.thumb || d.poster;
+  const left = it.duration && it.position ? Math.max(1, Math.round((it.duration - it.position) / 60)) : null;
+  return h('div', { class: 'item' + (isNext ? ' next' : '') + (playing ? ' playing' : ''), title: it.name, onclick: () => player.start(d, items, items.indexOf(it)) },
+    h('div', { class: 'still' },
+      thumb ? h('img', { src: thumb, loading: 'lazy', alt: '' }) : h('div', { class: 'num', text: it.number != null ? digits(pad(it.number)) : '▶' }),
+      it.duration ? h('span', { class: 'duration', text: clock(it.duration) }) : null,
+      h('div', { class: 'play-hint' }, h('span', { class: 'round-play' }, icon('play')))),
+    h('div', { class: 'item-body' },
+      h('div', { class: 'item-code' }, itemCode(d, it) || null, isNext && h('span', { class: 'up-next', text: t('upNext') })),
+      h('div', { class: 'item-title', text: it.label }),
+      h('div', { class: 'item-meta', text: [fmtDate(it.published_at), left && t('minLeft', left), it.size && size(it.size)].filter(Boolean).join(' · ') }),
+      it.description && h('div', { class: 'item-desc', text: it.description }),
+      pct ? h('div', { class: 'bar' }, h('i', { style: `width:${pct}%` })) : null),
+    checkBtn(it));
+}
+function surahList(d) {
+  return h('div', { class: 'surahs' }, d.items.map((it) => {
+    const s = it.surah;
+    const isNext = it.file_id === d.next_up;
+    const playing = player.current()?.file_id === it.file_id;
+    return h('div', { class: 'surah' + (isNext ? ' next' : '') + (playing ? ' playing' : ''), title: it.name, onclick: () => player.start(d, d.items, d.items.indexOf(it)) },
+      h('div', { class: 'no' }, h('span', { text: digits(s ? s.number : '?') })),
+      h('div', { class: 'body' },
+        h('div', { class: 'name', text: s ? `${s.name}${lang === 'bn' ? ` · ${s.meaning_bn}` : ` · ${s.meaning_en}`}` : it.label }),
+        h('div', { class: 'sub', text: s ? [t('verses', s.verses), s.makki ? t('makki') : t('madani'), it.duration && clock(it.duration)].filter(Boolean).join(' · ') : '' })),
+      s ? h('div', { class: 'ar', text: s.arabic }) : null,
+      checkBtn(it));
+  }));
 }
 
-function filesView(d) {
-  const box = h('div', { class: 'files' }, h('h3', { text: d.files.length > 1 ? `${d.files.length} versions` : 'File' }));
-  for (const f of d.files) {
-    const check = h('button', {
-      class: 'btn small ghost' + (f.watched ? ' on' : ''), title: 'Watched',
-      async onclick() {
-        f.watched = !f.watched;
-        check.classList.toggle('on', f.watched);
-        await POST('/api/watched', { file_id: f.file_id, on: f.watched }).catch((e) => toast(e.message, true));
-      },
-    }, icon('check'));
-    box.append(h('div', { class: 'file-row' },
-      h('div', { class: 'name' }, f.name, h('div', { class: 'sub', text: [f.quality, f.size && size(f.size), f.played_at && 'played'].filter(Boolean).join(' · ') })),
-      playableName(f.name) && h('button', { class: 'btn small', onclick: () => playFile(d, f.file_id, { builtin: true }) }, icon('eye'), 'Watch here'),
-      h('button', { class: 'btn small primary', onclick: () => playFile(d, f.file_id, { builtin: false }) }, icon('play'), playerName()),
-      check));
+// ------------------------------------------------------------- player
+/** The bottom player bar: plays a queue of items in an audio/video element
+ *  or an embedded YouTube player, saves the position as it goes and moves
+ *  on to the next item. Files the browser can't decode go to VLC. */
+const player = (() => {
+  const st = { d: null, queue: [], i: 0, media: null, yt: null, ytTimer: 0, saveAt: 0, speed: 1, big: false, error: false };
+  try { st.speed = Number(localStorage.getItem('noor.speed')) || 1; } catch { /* ignore */ }
+  const root = $('#player');
+  const cur = () => st.queue[st.i] || null;
+  const SPEEDS = [0.75, 1, 1.25, 1.5, 1.75, 2];
+
+  function srcOf(it) {
+    if (it.url.startsWith('file:')) return '/media/' + it.file_id;
+    return it.url;
   }
-  return box;
-}
+  function modeOf(it) {
+    if (ytId(it.url)) return 'youtube';
+    const e = ext(it.name || it.url);
+    if (AUDIO.has(e)) return 'audio';
+    if (VIDEO_OK.has(e)) return 'video';
+    return 'external';
+  }
+  function save(force = false) {
+    const it = cur();
+    if (!it) return;
+    let pos, dur;
+    if (st.media) { pos = st.media.currentTime; dur = st.media.duration; }
+    else if (st.yt?.getCurrentTime) { pos = st.yt.getCurrentTime(); dur = st.yt.getDuration(); }
+    else return;
+    const now = Date.now();
+    if (!force && now - st.saveAt < 8000) return;
+    st.saveAt = now;
+    if (pos > 1) {
+      it.position = pos;
+      POST('/api/progress', { file_id: it.file_id, position: pos, duration: isFinite(dur) && dur > 0 ? dur : null }).catch(() => {});
+    }
+  }
+  function teardown() {
+    save(true);
+    if (st.media) { st.media.pause(); st.media.removeAttribute('src'); st.media.load(); st.media = null; }
+    if (st.yt) { try { st.yt.destroy(); } catch { /* ignore */ } st.yt = null; }
+    clearInterval(st.ytTimer);
+  }
 
-function fixMatch(d) {
-  const input = h('input', { class: 'input', value: d.name, placeholder: 'Title, TMDB id or themoviedb.org link' });
-  const year = h('input', { class: 'input', value: d.year || '', placeholder: 'Year', style: 'width:90px' });
-  const msg = h('div', { class: 'result-line' });
-  const go_ = h('button', {
-    class: 'btn primary', text: 'Search', async onclick() {
-      go_.disabled = true;
-      msg.className = 'result-line'; msg.textContent = 'Searching…';
-      try {
-        const r = await POST(`/api/titles/${d.id}/match`, { query: input.value, year: Number(year.value) || null });
-        close();
-        toast(`Matched: ${r.title}`);
-        refreshDetail(d.id);
-      } catch (e) {
-        msg.className = 'result-line err'; msg.textContent = e.message;
-        go_.disabled = false;
-      }
-    },
+  async function start(d, items, index = 0) {
+    if (!items.length) return toast(t('noEpisodes'), true);
+    const externalOnly = app.state?.flags?.external_only;
+    const it = items[index];
+    if (modeOf(it) === 'external' || (externalOnly && modeOf(it) !== 'youtube')) {
+      try { await POST('/api/play', { file_id: it.file_id }); toast(t('opening', it.label, playerName())); setTimeout(() => refreshDetail(d.id), 800); }
+      catch (e) { toast(e.message, true); }
+      return;
+    }
+    teardown();
+    st.d = d; st.queue = items; st.i = index;
+    load();
+  }
+
+  function load() {
+    const it = cur();
+    st.error = false;
+    teardown();
+    const mode = modeOf(it);
+    if (mode === 'external') {
+      POST('/api/play', { file_id: it.file_id }).then(() => toast(t('opening', it.label, playerName()))).catch((e) => toast(e.message, true));
+      return next();
+    }
+    POST('/api/play', { file_id: it.file_id, record_only: true }).catch(() => {});
+    render();
+    if (mode === 'youtube') loadYouTube(it);
+    else {
+      const el = h(mode === 'video' ? 'video' : 'audio', { preload: 'auto', playsinline: true });
+      st.media = el;
+      el.playbackRate = st.speed;
+      el.addEventListener('loadedmetadata', () => {
+        if (it.position > 5 && (!el.duration || it.position < el.duration - 10)) el.currentTime = it.position;
+        el.playbackRate = st.speed;
+        updateTime();
+      });
+      el.addEventListener('timeupdate', () => { updateTime(); save(); });
+      el.addEventListener('pause', () => { save(true); updateButtons(); });
+      el.addEventListener('play', updateButtons);
+      el.addEventListener('ended', () => { markDone(it); next(); });
+      el.addEventListener('error', () => showError(it));
+      el.src = srcOf(it);
+      root.querySelector('.media-slot')?.replaceChildren(el);
+      el.play().catch(() => {});
+    }
+    highlight();
+  }
+
+  function markDone(it) {
+    it.watched = true;
+    it.position = null;
+    POST('/api/progress', { file_id: it.file_id, position: 999999, duration: 1 }).catch(() => {});
+  }
+
+  function ensureYtApi() {
+    if (window.YT?.Player) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      window.onYouTubeIframeAPIReady = resolve;
+      const s = document.createElement('script');
+      s.src = 'https://www.youtube.com/iframe_api';
+      s.onerror = reject;
+      document.head.append(s);
+      setTimeout(() => reject(new Error('timeout')), 15000);
+    });
+  }
+  async function loadYouTube(it) {
+    const slot = root.querySelector('.media-slot');
+    const holder = h('div', { class: 'yt' });
+    slot.replaceChildren(holder);
+    try { await ensureYtApi(); } catch { return showError(it, true); }
+    if (cur() !== it) return;
+    st.yt = new window.YT.Player(holder, {
+      videoId: ytId(it.url),
+      playerVars: { autoplay: 1, rel: 0, modestbranding: 1, start: it.position > 5 ? Math.floor(it.position) : 0, origin: location.origin },
+      events: {
+        onReady: (e) => { try { e.target.setPlaybackRate(st.speed); } catch { /* some videos fix the rate */ } updateButtons(); },
+        onStateChange: (e) => {
+          if (e.data === 0) { markDone(it); next(); }
+          if (e.data === 2) save(true);
+          updateButtons();
+        },
+        onError: () => showError(it, true),
+      },
+    });
+    st.ytTimer = setInterval(() => { updateTime(); save(); }, 1000);
+  }
+
+  function showError(it, youtube = false) {
+    if (cur() !== it) return;
+    st.error = true;
+    root.classList.add('has-video');
+    const slot = root.querySelector('.media-slot');
+    slot.append(h('div', { class: 'media-error' }, h('div', {},
+      h('p', { text: youtube ? t('openYouTube') : t('cantPlayHere') }),
+      h('div', { class: 'actions', style: 'justify-content:center' },
+        youtube ? h('button', { class: 'btn primary', onclick: () => POST('/api/play', { file_id: it.file_id }).then(() => toast(t('openedYouTube'))) }, icon('youtube'), t('openYouTube'))
+          : h('button', { class: 'btn primary', onclick: () => POST('/api/play', { file_id: it.file_id }).then(() => toast(t('opening', it.label, playerName()))).catch((e) => toast(e.message, true)) }, icon('external'), t('openIn', playerName())),
+        st.i + 1 < st.queue.length && h('button', { class: 'btn', onclick: next }, icon('next'), t('skipNext'))))));
+  }
+
+  function next() {
+    if (st.i + 1 < st.queue.length) { st.i++; load(); }
+    else { save(true); updateButtons(); refreshDetail(st.d?.id); }
+  }
+  function prev() {
+    const pos = st.media ? st.media.currentTime : st.yt?.getCurrentTime?.() || 0;
+    if (pos > 5 || st.i === 0) seek(0);
+    else { st.i--; load(); }
+  }
+  function seek(sec) {
+    if (st.media) st.media.currentTime = Math.max(0, sec);
+    else st.yt?.seekTo?.(Math.max(0, sec), true);
+  }
+  function position() {
+    if (st.media) return [st.media.currentTime || 0, st.media.duration || cur()?.duration || 0];
+    if (st.yt?.getCurrentTime) return [st.yt.getCurrentTime() || 0, st.yt.getDuration() || cur()?.duration || 0];
+    return [0, cur()?.duration || 0];
+  }
+  function toggle() {
+    if (st.media) st.media.paused ? st.media.play() : st.media.pause();
+    else if (st.yt?.getPlayerState) st.yt.getPlayerState() === 1 ? st.yt.pauseVideo() : st.yt.playVideo();
+  }
+  function paused() {
+    if (st.media) return st.media.paused;
+    if (st.yt?.getPlayerState) return st.yt.getPlayerState() !== 1;
+    return true;
+  }
+  function setSpeed() {
+    st.speed = SPEEDS[(SPEEDS.indexOf(st.speed) + 1) % SPEEDS.length] || 1;
+    try { localStorage.setItem('noor.speed', String(st.speed)); } catch { /* ignore */ }
+    if (st.media) st.media.playbackRate = st.speed;
+    try { st.yt?.setPlaybackRate?.(st.speed); } catch { /* ignore */ }
+    const b = root.querySelector('.speed');
+    if (b) b.textContent = digits(st.speed) + '×';
+  }
+  function close() {
+    teardown();
+    st.d = null; st.queue = [];
+    root.hidden = true;
+    document.body.classList.remove('playing');
+    highlight();
+  }
+
+  let refs = {};
+  function render() {
+    const it = cur();
+    if (!it) { root.hidden = true; return; }
+    const d = st.d;
+    const video = modeOf(it) !== 'audio';
+    root.hidden = false;
+    document.body.classList.add('playing');
+    root.classList.toggle('has-video', video);
+    root.classList.toggle('big', st.big);
+    const slider = h('input', { type: 'range', min: 0, max: 1000, value: 0 });
+    slider.addEventListener('input', () => { const [, dur] = position(); seek((slider.value / 1000) * dur); });
+    const vol = h('input', { type: 'range', class: 'vol', min: 0, max: 100, value: 100 });
+    vol.addEventListener('input', () => { if (st.media) st.media.volume = vol.value / 100; st.yt?.setVolume?.(Number(vol.value)); });
+    const playBtn = h('button', { class: 'pbtn main', title: t('play'), onclick: toggle }, icon('pause'));
+    refs = { slider, playBtn, cur: h('span', { text: '0:00' }), dur: h('span', { text: clock(it.duration) || '0:00' }) };
+    const thumb = it.thumb || d.poster;
+    const slot = h('div', { class: 'media-slot' });
+    if (st.media) slot.append(st.media);
+    fill(root,
+      h('div', { class: 'video-wrap' }, slot),
+      h('div', { class: 'pbar' },
+        h('div', { class: 'pnow', onclick: () => go('#/title/' + d.id) },
+          h('div', { class: 'art' }, thumb ? h('img', { src: thumb, alt: '' }) : null),
+          h('div', { class: 'txt' }, h('b', { text: d.kind === 'quran' && it.surah ? `${it.surah.name} · ${it.surah.arabic}` : it.label }), h('span', { text: [d.speaker || d.name, itemCode(d, it)].filter(Boolean).join(' · ') }))),
+        h('div', { class: 'pcenter' },
+          h('div', { class: 'pbuttons' },
+            h('button', { class: 'pbtn', title: '−15s', onclick: () => seek(position()[0] - 15) }, icon('back15')),
+            h('button', { class: 'pbtn', onclick: prev, disabled: st.queue.length < 2 && false }, icon('prev')),
+            playBtn,
+            h('button', { class: 'pbtn', onclick: next, disabled: st.i + 1 >= st.queue.length }, icon('next')),
+            h('button', { class: 'pbtn', title: '+30s', onclick: () => seek(position()[0] + 30) }, icon('fwd30'))),
+          h('div', { class: 'ptime' }, refs.cur, slider, refs.dur)),
+        h('div', { class: 'pright' },
+          h('button', { class: 'speed', title: t('speed'), onclick: setSpeed, text: digits(st.speed) + '×' }),
+          icon('volume'), vol,
+          video && h('button', { class: 'pbtn', title: '', onclick() { st.big = !st.big; root.classList.toggle('big', st.big); this.replaceChildren(icon(st.big ? 'shrink' : 'expand')); } }, icon(st.big ? 'shrink' : 'expand')),
+          h('button', { class: 'pbtn', title: t('inPlayer'), onclick: () => POST('/api/play', { file_id: it.file_id }).then(() => toast(ytId(it.url) ? t('openedYouTube') : t('opening', it.label, playerName()))).catch((e) => toast(e.message, true)) }, icon('external')),
+          h('button', { class: 'pbtn', title: t('close'), onclick: close }, icon('x')))));
+    updateButtons();
+  }
+  function updateTime() {
+    if (!refs.slider) return;
+    const [pos, dur] = position();
+    refs.cur.textContent = clock(pos);
+    if (dur) { refs.dur.textContent = clock(dur); refs.slider.value = Math.round((pos / dur) * 1000); }
+  }
+  function updateButtons() {
+    if (refs.playBtn) refs.playBtn.replaceChildren(icon(paused() ? 'play' : 'pause'));
+  }
+  function highlight() {
+    const id = cur()?.file_id;
+    if (app.pageCtl?.detailId === st.d?.id || !id) {
+      for (const el of document.querySelectorAll('.item.playing, .surah.playing')) el.classList.remove('playing');
+    }
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (root.hidden || /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
+    if (e.code === 'Space') { e.preventDefault(); toggle(); }
+    else if (e.key === 'ArrowRight') seek(position()[0] + 10);
+    else if (e.key === 'ArrowLeft') seek(position()[0] - 10);
   });
-  const close = modal(h('div', {},
-    h('h2', { text: 'Fix the match' }),
-    h('p', { text: 'Search TMDB again with a cleaner title, or paste the TMDB page link for this ' + (d.kind === 'show' ? 'show.' : 'movie.') }),
-    h('div', { class: 'with-btn' }, input, year),
-    msg,
-    h('div', { class: 'actions' }, h('button', { class: 'btn', text: 'Cancel', onclick: () => close() }), go_)));
-  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') go_.click(); });
-  input.focus();
-  input.select();
-}
-
-function modal(content) {
-  const root = $('#overlay-root');
-  const back = h('div', { class: 'modal-back', onclick(e) { if (e.target === back) close(); } }, h('div', { class: 'modal' }, content));
-  const onKey = (e) => { if (e.key === 'Escape') close(); };
-  function close() { back.remove(); document.removeEventListener('keydown', onKey); }
-  document.addEventListener('keydown', onKey);
-  root.append(back);
-  return close;
-}
-
-function confirmBox(title, text, okLabel, danger = false) {
-  return new Promise((resolve) => {
-    const close = modal(h('div', {},
-      h('h2', { text: title }), h('p', { text }),
-      h('div', { class: 'actions' },
-        h('button', { class: 'btn', text: 'Cancel', onclick() { close(); resolve(false); } }),
-        h('button', { class: 'btn ' + (danger ? 'danger-solid' : 'primary'), text: okLabel, onclick() { close(); resolve(true); } }))));
-  });
-}
+  window.addEventListener('beforeunload', () => save(true));
+  return { start, current: cur, render: () => { if (cur()) render(); } };
+})();
 
 // ---------------------------------------------------------- settings
-const TABS = [
-  ['sources', 'database', 'Sources'],
-  ['player', 'monitor', 'Player'],
-  ['info', 'info', 'Movie info'],
-  ['assistant', 'sparkles', 'AI assistant'],
-  ['library', 'drive', 'Library & storage'],
-];
-
+const TABS = [['sources', 'database', 'tabSources'], ['player', 'monitor', 'tabPlayer'], ['youtube', 'youtube', 'tabYouTube'], ['assistant', 'sparkles', 'tabAssistant'], ['language', 'languages', 'tabLanguage'], ['library', 'drive', 'tabLibrary']];
 async function settingsPage(tab) {
-  if (!TABS.some((t) => t[0] === tab)) tab = 'sources';
-  const wrap = h('div', { class: 'wrap' },
-    h('h1', { class: 'page-title', text: 'Settings' }),
-    h('div', { class: 'tabs' }, TABS.map(([id, ic, label]) =>
-      h('a', { class: 'tab' + (id === tab ? ' on' : ''), href: '#/settings/' + id }, icon(ic), label))));
+  if (!TABS.some((x) => x[0] === tab)) tab = 'sources';
+  const wrap = h('div', { class: 'wrap' }, h('h1', { class: 'page-title', text: t('settings') }),
+    h('div', { class: 'tabs' }, TABS.map(([id, ic, label]) => h('a', { class: 'tab' + (id === tab ? ' on' : ''), href: '#/settings/' + id }, icon(ic), t(label)))));
   page.append(wrap);
   const body = h('div');
   wrap.append(body);
-  const settings = await GET('/api/settings');
+  const s = await GET('/api/settings');
   switch (tab) {
-    case 'player': return playerTab(body, settings);
-    case 'info': return infoTab(body, settings);
-    case 'assistant': return assistantTab(body, settings);
-    case 'library': return libraryTab(body, settings);
+    case 'player': return playerTab(body, s);
+    case 'youtube': return youtubeTab(body, s);
+    case 'assistant': return assistantTab(body, s);
+    case 'language': return languageTab(body);
+    case 'library': return libraryTab(body, s);
     default: return sourcesTab(body);
   }
 }
-
-function field(label, control, hint) {
-  return h('div', { class: 'field' }, h('label', { text: label }), control, hint && h('div', { class: 'hint', text: hint }));
+function field(label, control, hint, style) {
+  return h('div', { class: 'field', style }, h('label', { text: label }), control, hint && h('div', { class: 'hint', text: hint }));
 }
-
 function seg(options, value, onchange) {
   const box = h('div', { class: 'seg' });
-  function render() {
-    box.replaceChildren(...options.map(([v, label, ic]) => h('button', {
-      class: v === value ? 'on' : '', type: 'button', onclick() { value = v; render(); onchange(v); },
-    }, ic && icon(ic), label)));
-  }
+  const render = () => fill(box, options.map(([v, label, ic]) => h('button', { class: v === value ? 'on' : '', type: 'button', onclick() { value = v; render(); onchange(v); } }, ic && icon(ic), label)));
   render();
+  box.set = (v) => { value = v; render(); };
   return box;
 }
-
 async function pickPath(kind) {
   try { return (await POST('/api/pick', { kind })).path; } catch (e) { toast(e.message, true); return null; }
 }
+const KIND_OPTS = () => [['lectures', t('kindLectures'), 'mic'], ['series', t('kindSeries'), 'layers'], ['quran', t('kindQuran'), 'book']];
+const msgLine = () => h('div', { class: 'result-line' });
+const setMsg = (el, text, ok) => { el.className = 'result-line ' + (ok ? 'ok' : 'err'); el.textContent = text; };
 
 function sourcesTab(body) {
-  // ---- add a link
-  let kind = 'movies';
-  const loc = h('input', { class: 'input mono', placeholder: 'http://172.16.50.14/DHAKA-FLIX-14/English Movies (1080p)/', spellcheck: 'false' });
-  const name = h('input', { class: 'input', placeholder: 'English Movies 1080p' });
-  const kindHint = h('div', { class: 'hint', text: 'Folder → Movie folders' });
-  const kindSeg = seg([['movies', 'Movies', 'film'], ['shows', 'TV shows', 'tv']], kind, (v) => {
-    kind = v;
-    kindHint.textContent = v === 'shows' ? 'Folder → Show folders → Seasons' : 'Folder → Movie folders';
-  });
-  const result = h('div', { class: 'result-line' });
-  const browse = h('button', { class: 'btn', title: 'Choose a folder on this PC', async onclick() { const p = await pickPath('folder'); if (p) loc.value = p; } }, icon('folder'));
+  let kind = 'lectures', origin = null;
+  const loc = h('input', { class: 'input mono', placeholder: 'http://server/Waz/   ·   https://www.youtube.com/@channel   ·   https://…/feed.xml', spellcheck: 'false' });
+  const name = h('input', { class: 'input', placeholder: 'Tafsir' });
+  const speaker = h('input', { class: 'input' });
+  const speakerFolders = h('input', { type: 'checkbox' });
+  const kindHint = h('div', { class: 'hint', text: t('kindHint').lectures });
+  const kindSeg = seg(KIND_OPTS(), kind, (v) => { kind = v; kindHint.textContent = t('kindHint')[v]; });
+  loc.addEventListener('input', () => { origin = null; });
+  const result = msgLine();
+  const browse = h('button', { class: 'btn', title: t('selectFirst'), async onclick() { const p = await pickPath('folder'); if (p) { loc.value = p; origin = 'folder'; } } }, icon('folder'));
   const check = h('button', {
-    class: 'btn', text: 'Check link', async onclick() {
+    class: 'btn', text: t('checkLink'), async onclick() {
       if (!loc.value.trim()) return loc.focus();
       check.disabled = true;
-      result.className = 'result-line'; result.textContent = 'Checking…';
+      result.className = 'result-line'; result.textContent = t('checking');
       try {
         const r = await POST('/api/sources/check', { location: loc.value });
+        origin = r.origin;
+        const kindLabel = { lectures: t('kindLectures'), series: t('kindSeries'), quran: t('kindQuran') }[r.kind];
+        fill(result, `${t('checkOk', t('originNames')[r.origin], t('nItems', r.items), r.folders || null)} ${t('looksLike', kindLabel)}`,
+          r.sample?.length ? h('span', { class: 'sample', text: r.sample.join(' · ') }) : null);
         result.className = 'result-line ok';
-        fill(result, `✓ Works: ${plural(r.folders, 'folder')}, ${plural(r.videos, 'video')} at the top level. Looks like ${r.kind === 'shows' ? 'TV shows' : 'movies'}.`,
-          r.sample.length ? h('span', { class: 'sample', text: 'e.g. ' + r.sample.join(' · ') }) : null);
-        if (r.kind !== kind) kindSeg.querySelectorAll('button')[r.kind === 'shows' ? 1 : 0].click();
-        if (!name.value.trim()) name.value = r.name;
-      } catch (e) {
-        result.className = 'result-line err'; result.textContent = e.message;
-      }
+        kind = r.kind; kindSeg.set(r.kind); kindHint.textContent = t('kindHint')[r.kind];
+        if (!name.value.trim() && r.name) name.value = r.name;
+        if (!speaker.value.trim() && r.speaker) speaker.value = r.speaker;
+      } catch (e) { setMsg(result, e.message, false); }
       check.disabled = false;
     },
   });
@@ -941,129 +1241,106 @@ function sourcesTab(body) {
       if (!loc.value.trim()) return loc.focus();
       add.disabled = true;
       try {
-        const r = await POST('/api/sources', { location: loc.value, name: name.value, kind, sync: true });
-        result.className = 'result-line ok'; result.textContent = `Added “${r.name}”. Syncing now — titles appear as soon as it finishes.`;
-        loc.value = ''; name.value = '';
+        const r = await POST('/api/sources', { location: loc.value, name: name.value, kind, origin, speaker: speaker.value.trim() || null, speaker_folders: speakerFolders.checked, sync: true });
+        setMsg(result, t('added', r.name), true);
+        loc.value = ''; name.value = ''; speaker.value = ''; speakerFolders.checked = false; origin = null;
         await refreshState();
-      } catch (e) {
-        result.className = 'result-line err'; result.textContent = e.message;
-      }
+      } catch (e) { setMsg(result, e.message, false); }
       add.disabled = false;
     },
-  }, icon('plus'), 'Add and sync');
+  }, icon('plus'), t('addAndSync'));
   [loc, name].forEach((el) => el.addEventListener('keydown', (e) => { if (e.key === 'Enter') add.click(); }));
 
   const addPanel = h('div', { class: 'panel' },
-    h('h2', { text: 'Add a link' }),
-    h('p', { class: 'lead', text: 'A movie folder (category, year or collection) or a TV series folder such as KOREAN TV & WEB Series. A folder on this PC works too.' }),
+    h('h2', { text: t('addLink') }), h('p', { class: 'lead', text: t('addLead') }),
     h('div', { class: 'form-row' },
-      h('div', { class: 'field', style: 'flex:1 1 280px' }, h('label', { text: 'Folder link' }), h('div', { class: 'with-btn' }, loc, browse), h('div', { class: 'hint', text: 'A category or year folder. Everything inside it is scanned.' })),
-      h('div', { class: 'field' }, h('label', { text: 'Type' }), kindSeg, kindHint),
-      h('div', { class: 'field', style: 'flex:0 1 180px' }, h('label', { text: 'Name' }), name, h('div', { class: 'hint', text: 'Shown in the sidebar.' })),
-      h('div', { class: 'field', style: 'padding-top:22px' }, h('div', { class: 'actions', style: 'flex-wrap:nowrap' }, check, add))),
-    result);
+      field(t('location'), h('div', { class: 'with-btn' }, loc, browse), t('locationHint'), 'flex:1 1 380px'),
+      field(t('type'), kindSeg, null),
+      field(t('name'), name, t('nameHint'), 'flex:0 1 200px')),
+    h('div', { class: 'form-row', style: 'margin-top:14px;align-items:center' },
+      field(t('speakerField'), speaker, t('speakerHint'), 'flex:0 1 280px'),
+      h('label', { class: 'check-row', style: 'margin-top:8px' }, speakerFolders, t('speakerFolders')),
+      h('div', { style: 'flex:1' }),
+      h('div', { class: 'actions' }, check, add)),
+    kindHint, result);
 
-  // ---- your sources
   const list = h('div', { class: 'sources-list' });
   const countLine = h('div', { class: 'subtitle' });
   const syncAll = h('button', { class: 'btn' });
-  const full = h('button', {
-    class: 'btn', text: 'Full rescan', async onclick() {
-      if (!await confirmBox('Full rescan', 'Re-walk every source from scratch. Files that are gone from the server are removed from the library. This can take a while for large sources.', 'Rescan everything')) return;
-      try { await POST('/api/sync', { full: true }); refreshState(); } catch (e) { toast(e.message, true); }
-    },
-  });
-  const listPanel = h('div', { class: 'panel' },
-    h('div', { class: 'panel-head' }, h('div', {}, h('h2', { text: 'Your sources' }), countLine), h('div', { class: 'actions' }, full, syncAll)),
-    list);
-
+  const full = h('button', { class: 'btn', text: t('fullRescan'), async onclick() {
+    if (!await confirmBox(t('rescanQ'), t('rescanText'), t('rescanOk'))) return;
+    try { await POST('/api/sync', { full: true }); refreshState(); } catch (e) { toast(e.message, true); }
+  } });
   const logBox = h('pre', { class: 'log' });
-  const logPanel = h('div', { class: 'panel' }, h('h2', { text: 'Activity' }), h('p', { class: 'lead', text: 'What the last syncs and lookups did.' }), logBox);
-
-  body.append(addPanel, listPanel, logPanel);
+  body.append(addPanel,
+    h('div', { class: 'panel' }, h('div', { class: 'panel-head' }, h('div', {}, h('h2', { text: t('yourSources') }), countLine), h('div', { class: 'actions' }, full, syncAll)), list),
+    h('div', { class: 'panel' }, h('h2', { text: t('activity') }), h('p', { class: 'lead', text: t('activityLead') }), logBox));
 
   function render(state) {
     const sources = state.sources;
     const busy = state.job.running || state.job.queued_roots.length > 0;
-    countLine.textContent = plural(sources.length, 'link');
+    countLine.textContent = t('nLinks', sources.length);
     syncAll.className = 'btn' + (busy ? ' busy' : ' primary');
-    syncAll.replaceChildren(busy ? h('span', { class: 'spinner' }) : icon('sync'), busy ? 'Syncing…' : 'Sync all');
+    fill(syncAll, busy ? h('span', { class: 'spinner' }) : icon('sync'), busy ? t('syncing') : t('syncAll'));
     syncAll.onclick = async () => {
-      if (busy) { await POST('/api/jobs/stop'); toast('Stopping…'); }
+      if (busy) { await POST('/api/jobs/stop'); toast(t('stopping')); }
       else { try { await POST('/api/sync'); } catch (e) { toast(e.message, true); } }
       refreshState();
     };
     full.disabled = !sources.length;
-    logBox.textContent = state.job.log.length ? state.job.log.join('\n') : 'Nothing yet.';
+    logBox.textContent = state.job.log.length ? state.job.log.join('\n') : t('nothing');
     logBox.scrollTop = logBox.scrollHeight;
     if (app.editing) return;
-    if (!sources.length) {
-      list.replaceChildren(h('div', { class: 'subtitle', style: 'padding:14px 0', text: 'No sources yet. Add a link above.' }));
-      return;
-    }
-    list.replaceChildren(...sources.map((s) => sourceRow(s, state)));
+    fill(list, sources.length ? sources.map((s) => sourceRow(s, state)) : h('div', { class: 'subtitle', style: 'padding:14px 0', text: t('noSources') }));
   }
-
   function sourceRow(s, state) {
-    const noun = s.kind === 'shows' ? 'show' : 'movie';
     const dotClass = s.syncing ? 'syncing' : s.status === 'ok' ? 'ok' : s.status === 'error' ? 'error' : '';
     let when = h('div', { class: 'when', text: ago(s.last_sync) });
-    if (s.syncing) when = h('div', { class: 'when busy', text: `Syncing${state.job.detail ? ' · ' + state.job.detail : '…'}` });
-    else if (s.queued) when = h('div', { class: 'when busy', text: 'Queued' });
+    if (s.syncing) when = h('div', { class: 'when busy', text: `${t('syncing')} ${state.job.detail || ''}` });
+    else if (s.queued) when = h('div', { class: 'when busy', text: t('queued') });
     else if (s.status === 'error') when = h('div', { class: 'when err', text: `${ago(s.last_sync)} · ${s.error || 'error'}` });
-    else if (s.status === 'stopped') when = h('div', { class: 'when', text: `${ago(s.last_sync)} · stopped before finishing` });
+    else if (s.status === 'stopped') when = h('div', { class: 'when', text: `${ago(s.last_sync)} · ${t('stoppedEarly')}` });
     const enc = encodeURIComponent(s.name);
+    const kindLabel = { lectures: t('kindLectures'), series: t('kindSeries'), quran: t('kindQuran') }[s.kind];
     const row = h('div', { class: 'source-row' },
+      h('div', { class: 'origin ' + s.origin, title: t('originNames')[s.origin] }, icon(ORIGIN_ICON[s.origin] || 'folder')),
       h('div', { class: 'body' },
-        h('div', { class: 'name-line' },
-          h('span', { class: 'dot ' + dotClass }),
-          h('a', { class: 'name', href: '#/source/' + enc, text: s.name }),
-          h('span', { class: 'tag', text: s.kind === 'shows' ? 'TV shows' : 'Movies' }),
-          h('span', { class: 'tag', text: plural(s.count, noun) })),
-        h('div', { class: 'loc', text: s.location, title: s.location }),
-        when),
+        h('div', { class: 'name-line' }, h('span', { class: 'dot ' + dotClass }), h('a', { class: 'name', href: '#/source/' + enc, text: s.name }),
+          h('span', { class: 'tag', text: kindLabel }), h('span', { class: 'tag', text: t('nItems', s.count) }), s.speaker && h('span', { class: 'tag', text: s.speaker })),
+        h('div', { class: 'loc', text: s.location, title: s.location }), when),
       h('div', { class: 'row-actions' },
-        h('button', { class: 'btn small', disabled: s.syncing || s.queued, async onclick() { await POST(`/api/sources/${enc}/sync`).catch((e) => toast(e.message, true)); refreshState(); } }, icon('sync'), 'Sync'),
-        h('button', { class: 'icon-btn', title: 'Stop', disabled: !(s.syncing || s.queued), async onclick() { await POST(`/api/sources/${enc}/stop`); refreshState(); } }, icon('stop')),
-        h('button', { class: 'icon-btn', title: 'Edit', onclick() { editRow(row, s); } }, icon('pencil')),
-        h('button', {
-          class: 'icon-btn danger', title: 'Delete', async onclick() {
-            if (!await confirmBox(`Delete “${s.name}”?`, `Its ${plural(s.count, noun)} leave your library (watchlist and history for them too). Nothing on the server or disk is touched.`, 'Delete', true)) return;
-            try { await DEL(`/api/sources/${enc}`); toast(`Deleted “${s.name}”`); } catch (e) { toast(e.message, true); }
-            refreshState();
-          },
-        }, icon('trash'))));
+        h('button', { class: 'btn small', disabled: s.syncing || s.queued, async onclick() { await POST(`/api/sources/${enc}/sync`).catch((e) => toast(e.message, true)); refreshState(); } }, icon('sync'), t('sync')),
+        h('button', { class: 'icon-btn', title: t('stop'), disabled: !(s.syncing || s.queued), async onclick() { await POST(`/api/sources/${enc}/stop`); refreshState(); } }, icon('stop')),
+        h('button', { class: 'icon-btn', title: t('edit'), onclick() { editRow(row, s); } }, icon('pencil')),
+        h('button', { class: 'icon-btn danger', title: t('del'), async onclick() {
+          if (!await confirmBox(t('deleteQ', s.name), t('deleteText'), t('del'), true)) return;
+          try { await DEL(`/api/sources/${enc}`); } catch (e) { toast(e.message, true); }
+          refreshState();
+        } }, icon('trash'))));
     return row;
   }
-
   function editRow(row, s) {
     app.editing = s.name;
-    let kind_ = s.kind;
+    let k = s.kind;
     const n = h('input', { class: 'input', value: s.name });
     const l = h('input', { class: 'input mono', value: s.location });
-    const msg = h('div', { class: 'result-line' });
-    const box = h('div', { class: 'edit-box' },
-      h('div', { class: 'form-row' },
-        h('div', { class: 'field', style: 'flex:0 1 220px' }, h('label', { text: 'Name' }), n),
-        h('div', { class: 'field', style: 'flex:1 1 320px' }, h('label', { text: 'Folder link' }), l),
-        h('div', { class: 'field' }, h('label', { text: 'Type' }), seg([['movies', 'Movies', 'film'], ['shows', 'TV shows', 'tv']], kind_, (v) => { kind_ = v; }))),
-      msg,
+    const sp = h('input', { class: 'input', value: s.speaker || '' });
+    const sf = h('input', { type: 'checkbox' });
+    sf.checked = s.speaker_folders;
+    const m = msgLine();
+    row.replaceWith(h('div', { class: 'source-row', style: 'display:block' }, h('div', { class: 'edit-box' },
+      h('div', { class: 'form-row' }, field(t('name'), n, null, 'flex:0 1 220px'), field(t('location'), l, null, 'flex:1 1 320px'), field(t('type'), seg(KIND_OPTS(), k, (v) => { k = v; }))),
+      h('div', { class: 'form-row', style: 'margin-top:12px;align-items:center' }, field(t('speakerField'), sp, null, 'flex:0 1 260px'), h('label', { class: 'check-row', style: 'margin-top:18px' }, sf, t('speakerFolders'))),
+      m,
       h('div', { class: 'actions', style: 'margin-top:12px' },
-        h('button', {
-          class: 'btn primary', text: 'Save', async onclick() {
-            try {
-              await PUT(`/api/sources/${encodeURIComponent(s.name)}`, { name: n.value, location: l.value, kind: kind_ });
-              app.editing = null;
-              toast('Saved');
-              await refreshState();
-              render(app.state);
-            } catch (e) { msg.className = 'result-line err'; msg.textContent = e.message; }
-          },
-        }),
-        h('button', { class: 'btn', text: 'Cancel', onclick() { app.editing = null; render(app.state); } })));
-    row.replaceWith(h('div', { class: 'source-row', style: 'display:block' }, box));
+        h('button', { class: 'btn primary', text: t('saveBtn'), async onclick() {
+          try {
+            await PUT(`/api/sources/${encodeURIComponent(s.name)}`, { name: n.value, location: l.value, kind: k, origin: s.origin, speaker: sp.value.trim() || null, speaker_folders: sf.checked });
+            app.editing = null; toast(t('savedOk')); await refreshState(); render(app.state);
+          } catch (e) { setMsg(m, e.message, false); }
+        } }),
+        h('button', { class: 'btn', text: t('cancel'), onclick() { app.editing = null; render(app.state); } })))));
   }
-
   render(app.state);
   return { onState: render, cleanup() { app.editing = null; } };
 }
@@ -1072,216 +1349,140 @@ function playerTab(body, s) {
   const p = s.player;
   const cmd = h('input', { class: 'input mono', value: p.command });
   const args = h('input', { class: 'input mono', value: p.args.join(' ') });
-  const builtin = h('input', { type: 'checkbox' });
-  builtin.checked = p.prefer_builtin;
-  const msg = h('div', { class: 'result-line' });
-  body.append(h('div', { class: 'panel' },
-    h('h2', { text: 'Video player' }),
-    h('p', { class: 'lead', text: 'Play buttons hand the video to this program. VLC plays everything, including MKV and HEVC/x265, which browsers can’t.' }),
+  const ext_ = h('input', { type: 'checkbox' });
+  ext_.checked = p.external_only;
+  const m = msgLine();
+  body.append(h('div', { class: 'panel' }, h('h2', { text: t('playerTitle') }), h('p', { class: 'lead', text: t('playerLead') }),
     h('div', { class: 'form-row' },
-      h('div', { class: 'field', style: 'flex:1 1 420px' }, h('label', { text: 'Program' }),
-        h('div', { class: 'with-btn' }, cmd, h('button', { class: 'btn', async onclick() { const x = await pickPath('program'); if (x) cmd.value = x; } }, icon('folder'), 'Browse…')),
-        h('div', { class: 'hint', text: 'Full path to vlc.exe, mpv.exe, or another player.' })),
-      h('div', { class: 'field', style: 'flex:1 1 260px' }, h('label', { text: 'Arguments' }), args, h('div', { class: 'hint', text: '{url} becomes the video link or file path.' }))),
-    h('label', { class: 'check-row', style: 'margin-top:16px' }, builtin, 'Play MP4 and WebM files inside the app instead (MKV always opens in the player)'),
+      field(t('program'), h('div', { class: 'with-btn' }, cmd, h('button', { class: 'btn', async onclick() { const x = await pickPath('program'); if (x) cmd.value = x; } }, icon('folder'), t('browse'))), t('programHint'), 'flex:1 1 420px'),
+      field(t('args'), args, t('argsHint'), 'flex:1 1 260px')),
+    h('label', { class: 'check-row', style: 'margin-top:16px' }, ext_, t('externalOnly')),
     h('div', { class: 'actions', style: 'margin-top:18px' },
-      h('button', {
-        class: 'btn primary', text: 'Save', async onclick() {
-          try {
-            await PUT('/api/settings/player', { command: cmd.value, args: args.value.split(/\s+/).filter(Boolean), prefer_builtin: builtin.checked });
-            msg.className = 'result-line ok'; msg.textContent = 'Saved.';
-            refreshState();
-          } catch (e) { msg.className = 'result-line err'; msg.textContent = e.message; }
-        },
-      }),
-      h('button', { class: 'btn ghost', onclick: () => POST('/api/open-url', { url: 'https://www.videolan.org/vlc/' }).catch((e) => toast(e.message, true)) }, icon('external'), 'Get VLC')),
-    msg));
+      h('button', { class: 'btn primary', text: t('saveBtn'), async onclick() {
+        try { await PUT('/api/settings/player', { command: cmd.value, args: args.value.split(/\s+/).filter(Boolean), external_only: ext_.checked }); setMsg(m, t('savedOk'), true); refreshState(); }
+        catch (e) { setMsg(m, e.message, false); }
+      } }),
+      h('button', { class: 'btn ghost', onclick: () => POST('/api/open-url', { url: 'https://www.videolan.org/vlc/' }).catch((e) => toast(e.message, true)) }, icon('external'), t('getVlc'))),
+    m));
 }
-
-async function infoTab(body, s) {
-  const t = s.tmdb;
-  const key = h('input', { class: 'input mono', type: 'password', value: t.api_key, placeholder: 'TMDB API key or read access token' });
-  const show = h('button', { class: 'btn', title: 'Show', onclick() { key.type = key.type === 'password' ? 'text' : 'password'; } }, icon('eye'));
-  const lang = selectBox([['en-US', 'English'], ['bn-BD', 'Bangla'], ['hi-IN', 'Hindi'], ['ko-KR', 'Korean'], ['ja-JP', 'Japanese'], ['ta-IN', 'Tamil'], ['te-IN', 'Telugu'], ['es-ES', 'Spanish'], ['fr-FR', 'French'], ['de-DE', 'German'], ['zh-CN', 'Chinese'], ['ar-SA', 'Arabic']], t.language, () => {});
-  const auto = h('input', { type: 'checkbox' });
-  auto.checked = t.auto_lookup;
-  const msg = h('div', { class: 'result-line' });
-  const stats = h('div', { class: 'stats' });
-  body.append(
-    h('div', { class: 'panel' },
-      h('h2', { text: 'Movie info from TMDB' }),
-      h('p', { class: 'lead', text: 'Posters, backdrops, genres, ratings, plots and episode names come from The Movie Database. It needs a free API key.' }),
-      h('div', { class: 'form-row' },
-        h('div', { class: 'field', style: 'flex:1 1 420px' }, h('label', { text: 'API key' }), h('div', { class: 'with-btn' }, key, show),
-          h('div', { class: 'hint' }, 'Either the “API Key” or the “API Read Access Token” from ',
-            h('button', { class: 'link', text: 'themoviedb.org/settings/api', onclick: () => POST('/api/open-url', { url: 'https://www.themoviedb.org/settings/api' }).catch((e) => toast(e.message, true)) }), ' works.')),
-        h('div', { class: 'field' }, h('label', { text: 'Language' }), lang)),
-      h('label', { class: 'check-row', style: 'margin-top:16px' }, auto, 'Look up new titles automatically after each sync'),
-      h('div', { class: 'actions', style: 'margin-top:18px' },
-        h('button', {
-          class: 'btn', text: 'Test key', async onclick() {
-            msg.className = 'result-line'; msg.textContent = 'Testing…';
-            try { await POST('/api/tmdb/test', { api_key: key.value }); msg.className = 'result-line ok'; msg.textContent = '✓ The key works.'; }
-            catch (e) { msg.className = 'result-line err'; msg.textContent = e.message; }
-          },
-        }),
-        h('button', {
-          class: 'btn primary', text: 'Save', async onclick() {
-            try {
-              await PUT('/api/settings/tmdb', { api_key: key.value.trim(), language: lang.firstChild.value, auto_lookup: auto.checked });
-              msg.className = 'result-line ok'; msg.textContent = 'Saved.' + (key.value.trim() && auto.checked ? ' Looking up titles in the background.' : '');
-              refreshState(); loadStats();
-            } catch (e) { msg.className = 'result-line err'; msg.textContent = e.message; }
-          },
-        })),
-      msg),
-    h('div', { class: 'panel' },
-      h('h2', { text: 'Lookup status' }),
-      stats,
-      h('div', { class: 'actions', style: 'margin-top:16px' },
-        h('button', { class: 'btn', async onclick() { try { await POST('/api/tmdb/lookup', { retry: false }); toast('Looking up missing info…'); refreshState(); } catch (e) { toast(e.message, true); } } }, icon('search'), 'Look up missing now'),
-        h('button', { class: 'btn', async onclick() { try { await POST('/api/tmdb/lookup', { retry: true }); toast('Retrying titles without a match…'); refreshState(); } catch (e) { toast(e.message, true); } } }, icon('sync'), 'Retry not found'))));
-  async function loadStats() {
-    const st = await GET('/api/storage');
-    const x = st.stats;
-    stats.replaceChildren(
-      h('div', { class: 'stat' }, h('b', { text: num(x.matched) }), h('span', { text: 'matched' })),
-      h('div', { class: 'stat' }, h('b', { text: num(x.unmatched) }), h('span', { text: 'not found' })),
-      h('div', { class: 'stat' }, h('b', { text: num(x.pending) }), h('span', { text: 'waiting' })),
-      h('div', { class: 'stat' }, h('b', { text: num(x.posters) }), h('span', { text: 'with posters' })));
-  }
-  await loadStats();
-  return { onState: (st) => { if (st.job.running && st.job.total) loadStats(); } };
+function youtubeTab(body, s) {
+  const key = h('input', { class: 'input mono', type: 'password', value: s.youtube.api_key, placeholder: 'AIza…' });
+  const show = h('button', { class: 'btn', onclick() { key.type = key.type === 'password' ? 'text' : 'password'; } }, icon('eye'));
+  const m = msgLine();
+  body.append(h('div', { class: 'panel' }, h('h2', { text: t('ytTitle') }), h('p', { class: 'lead', text: t('ytLead') }),
+    h('ol', { class: 'steps' }, t('ytSteps').map((x) => h('li', { text: x }))),
+    h('div', { class: 'actions', style: 'margin:10px 0 18px' }, h('button', { class: 'btn ghost', onclick: () => POST('/api/open-url', { url: 'https://console.cloud.google.com/apis/library/youtube.googleapis.com' }).catch((e) => toast(e.message, true)) }, icon('external'), t('openConsole'))),
+    field(t('ytKey'), h('div', { class: 'with-btn' }, key, show), null, 'max-width:620px'),
+    h('div', { class: 'actions', style: 'margin-top:18px' },
+      h('button', { class: 'btn', text: t('testKey'), async onclick() {
+        m.className = 'result-line'; m.textContent = t('checking');
+        try { await POST('/api/youtube/test', { api_key: key.value }); setMsg(m, t('keyWorks'), true); } catch (e) { setMsg(m, e.message, false); }
+      } }),
+      h('button', { class: 'btn primary', text: t('saveBtn'), async onclick() {
+        try { await PUT('/api/settings/youtube', { api_key: key.value.trim() }); setMsg(m, t('savedOk'), true); refreshState(); } catch (e) { setMsg(m, e.message, false); }
+      } })),
+    m));
 }
-
 function assistantTab(body, s) {
   const a = s.assistant;
   const key = h('input', { class: 'input mono', type: 'password', value: a.api_key, placeholder: 'Gemini API key' });
-  const show = h('button', { class: 'btn', title: 'Show', onclick() { key.type = key.type === 'password' ? 'text' : 'password'; } }, icon('eye'));
+  const show = h('button', { class: 'btn', onclick() { key.type = key.type === 'password' ? 'text' : 'password'; } }, icon('eye'));
   const model = h('input', { class: 'input mono', value: a.model, list: 'model-list' });
   const datalist = h('datalist', { id: 'model-list' });
-  const msg = h('div', { class: 'result-line' });
-  body.append(h('div', { class: 'panel' },
-    h('h2', { text: 'Watch assistant' }),
-    h('p', { class: 'lead', text: 'Ask for “a slow-burn Korean thriller” or “something like Interstellar”, in any language. It uses Google Gemini and only ever recommends titles that are in your library.' }),
+  const m = msgLine();
+  body.append(h('div', { class: 'panel' }, h('h2', { text: t('asTitle') }), h('p', { class: 'lead', text: t('asLead') }),
     h('div', { class: 'form-row' },
-      h('div', { class: 'field', style: 'flex:1 1 380px' }, h('label', { text: 'Gemini API key' }), h('div', { class: 'with-btn' }, key, show),
-        h('div', { class: 'hint' }, 'Free from ', h('button', { class: 'link', text: 'aistudio.google.com/apikey', onclick: () => POST('/api/open-url', { url: 'https://aistudio.google.com/apikey' }).catch((e) => toast(e.message, true)) }))),
-      h('div', { class: 'field', style: 'flex:1 1 260px' }, h('label', { text: 'Model' }),
-        h('div', { class: 'with-btn' }, model, h('button', {
-          class: 'btn', text: 'Load list', async onclick() {
-            msg.className = 'result-line'; msg.textContent = 'Loading models…';
-            try {
-              const r = await GET('/api/assistant/models?' + qs({ key: key.value.trim() }));
-              datalist.replaceChildren(...r.models.map((m) => h('option', { value: m })));
-              msg.className = 'result-line ok'; msg.textContent = `✓ Key works. ${r.models.length} models available — pick one in the Model box.`;
-            } catch (e) { msg.className = 'result-line err'; msg.textContent = e.message; }
-          },
-        })), datalist)),
+      field(t('geminiKey'), h('div', { class: 'with-btn' }, key, show), null, 'flex:1 1 380px'),
+      field(t('model'), h('div', { class: 'with-btn' }, model, h('button', { class: 'btn', text: t('loadList'), async onclick() {
+        m.className = 'result-line'; m.textContent = t('checking');
+        try { const r = await GET('/api/assistant/models?' + qs({ key: key.value.trim() })); fill(datalist, r.models.map((x) => h('option', { value: x }))); setMsg(m, t('modelsOk', r.models.length), true); }
+        catch (e) { setMsg(m, e.message, false); }
+      } })), null, 'flex:1 1 260px'), datalist),
+    h('div', { class: 'hint', style: 'margin-top:8px' }, t('freeFrom'), ' ', h('button', { class: 'link', text: 'aistudio.google.com/apikey', onclick: () => POST('/api/open-url', { url: 'https://aistudio.google.com/apikey' }).catch((e) => toast(e.message, true)) })),
     h('div', { class: 'actions', style: 'margin-top:18px' },
-      h('button', {
-        class: 'btn primary', text: 'Save', async onclick() {
-          try {
-            await PUT('/api/settings/assistant', { api_key: key.value.trim(), model: model.value.trim() });
-            msg.className = 'result-line ok'; msg.textContent = 'Saved.';
-            refreshState();
-          } catch (e) { msg.className = 'result-line err'; msg.textContent = e.message; }
-        },
-      }),
-      h('button', {
-        class: 'btn danger', async onclick() {
-          if (!await confirmBox('Clear chat history?', 'The assistant forgets the conversation so far.', 'Clear', true)) return;
-          await DEL('/api/assistant'); assistant.messages = []; renderAssistant(); toast('Chat cleared');
-        },
-      }, icon('trash'), 'Clear chat history')),
-    msg));
+      h('button', { class: 'btn primary', text: t('saveBtn'), async onclick() {
+        try { await PUT('/api/settings/assistant', { api_key: key.value.trim(), model: model.value.trim() }); setMsg(m, t('savedOk'), true); refreshState(); } catch (e) { setMsg(m, e.message, false); }
+      } }),
+      h('button', { class: 'btn danger', async onclick() {
+        if (!await confirmBox(t('clearChatQ'), t('clearChatText'), t('clear'), true)) return;
+        await DEL('/api/assistant'); assistant.messages = []; renderAssistant(); toast(t('chatCleared'));
+      } }, icon('trash'), t('clearChat'))),
+    m));
 }
-
+function languageTab(body) {
+  body.append(h('div', { class: 'panel' }, h('h2', { text: t('langTitle') }), h('p', { class: 'lead', text: t('langLead') }),
+    seg([['bn', 'বাংলা'], ['en', 'English']], lang, (v) => setLang(v))));
+}
 async function libraryTab(body, s) {
   const lib = s.library;
   const skip = h('input', { class: 'input', value: lib.skip_dirs.join(', ') });
-  const ext = h('input', { class: 'input', value: lib.media_extensions.join(', ') });
+  const exts = h('input', { class: 'input', value: lib.media_extensions.join(', ') });
   const conc = h('input', { class: 'input', type: 'number', min: 1, max: 64, value: lib.concurrency });
   const delay = h('input', { class: 'input', type: 'number', min: 0, value: lib.delay_ms });
   const timeout = h('input', { class: 'input', type: 'number', min: 1, value: lib.timeout_secs });
   const depth = h('input', { class: 'input', type: 'number', min: 1, value: lib.max_depth });
-  const msg = h('div', { class: 'result-line' });
+  const m = msgLine();
   const stats = h('div', { class: 'stats' });
   const kv = h('div', { class: 'kv' });
   const list = (v) => v.split(',').map((x) => x.trim()).filter(Boolean);
   const n = (el) => Math.max(0, parseInt(el.value, 10) || 0);
-
   async function action(name, title, text, ok, danger) {
     if (!await confirmBox(title, text, ok, danger)) return;
-    try { await POST('/api/storage/' + name); toast('Done'); refreshState(); load(); app.gridMemo = {}; }
-    catch (e) { toast(e.message, true); }
+    try { await POST('/api/storage/' + name); toast(t('done')); refreshState(); load(); app.gridMemo = {}; } catch (e) { toast(e.message, true); }
   }
-
   body.append(
-    h('div', { class: 'panel' }, h('h2', { text: 'Library' }), stats, kv,
-      h('div', { class: 'actions', style: 'margin-top:16px' },
-        h('button', { class: 'btn', onclick: () => POST('/api/storage/open').catch((e) => toast(e.message, true)) }, icon('folder'), 'Open data folder'))),
-    h('div', { class: 'panel' },
-      h('h2', { text: 'Scanning' }),
-      h('p', { class: 'lead', text: 'Applies to the next sync.' }),
-      h('div', { class: 'form-row' },
-        h('div', { class: 'field', style: 'flex:1 1 300px' }, h('label', { text: 'Skip folders whose name contains' }), skip, h('div', { class: 'hint', text: 'Comma-separated, not case-sensitive.' })),
-        h('div', { class: 'field', style: 'flex:1 1 300px' }, h('label', { text: 'Video file types' }), ext)),
-      h('div', { class: 'form-row', style: 'margin-top:14px' },
-        field('Parallel requests', conc), field('Pause between levels (ms)', delay), field('Timeout (s)', timeout), field('Max folder depth', depth)),
-      h('div', { class: 'actions', style: 'margin-top:18px' },
-        h('button', {
-          class: 'btn primary', text: 'Save', async onclick() {
-            try {
-              await PUT('/api/settings/library', { skip_dirs: list(skip.value), media_extensions: list(ext.value), concurrency: n(conc), delay_ms: n(delay), timeout_secs: n(timeout), max_depth: n(depth) });
-              msg.className = 'result-line ok'; msg.textContent = 'Saved.';
-            } catch (e) { msg.className = 'result-line err'; msg.textContent = e.message; }
-          },
-        })),
-      msg),
-    h('div', { class: 'panel' },
-      h('h2', { text: 'Maintenance' }),
-      h('p', { class: 'lead', text: 'None of these touch your media files.' }),
+    h('div', { class: 'panel' }, h('h2', { text: t('libTitle') }), stats, kv,
+      h('div', { class: 'actions', style: 'margin-top:16px' }, h('button', { class: 'btn', onclick: () => POST('/api/storage/open').catch((e) => toast(e.message, true)) }, icon('folder'), t('openData')))),
+    h('div', { class: 'panel' }, h('h2', { text: t('scanning') }), h('p', { class: 'lead', text: t('scanningLead') }),
+      h('div', { class: 'form-row' }, field(t('skipFolders'), skip, t('commaHint'), 'flex:1 1 300px'), field(t('fileTypes'), exts, null, 'flex:1 1 300px')),
+      h('div', { class: 'form-row', style: 'margin-top:14px' }, field(t('parallel'), conc), field(t('pause'), delay), field(t('timeout'), timeout), field(t('depth'), depth)),
+      h('div', { class: 'actions', style: 'margin-top:18px' }, h('button', { class: 'btn primary', text: t('saveBtn'), async onclick() {
+        try { await PUT('/api/settings/library', { skip_dirs: list(skip.value), media_extensions: list(exts.value), concurrency: n(conc), delay_ms: n(delay), timeout_secs: n(timeout), max_depth: n(depth) }); setMsg(m, t('savedOk'), true); }
+        catch (e) { setMsg(m, e.message, false); }
+      } })), m),
+    h('div', { class: 'panel' }, h('h2', { text: t('maintenance') }), h('p', { class: 'lead', text: t('maintenanceLead') }),
       h('div', { class: 'actions' },
-        h('button', { class: 'btn', onclick: () => action('rebuild', 'Rebuild library', 'Regroup all files into movies and shows again. Watchlist and info are kept.', 'Rebuild') }, icon('sync'), 'Rebuild library'),
-        h('button', { class: 'btn', onclick: () => action('clear-history', 'Clear watch history', 'Forget what you played and every watched mark.', 'Clear', true) }, icon('history'), 'Clear watch history'),
-        h('button', { class: 'btn', onclick: () => action('clear-info', 'Clear movie info', 'Forget all TMDB info and look everything up again.', 'Clear', true) }, icon('info'), 'Clear movie info'),
-        h('button', { class: 'btn danger-solid', onclick: () => action('reset', 'Reset library', 'Empty the whole library: titles, history, watchlist and chat. Your sources stay; sync them to rebuild.', 'Reset everything', true) }, icon('trash'), 'Reset library'))));
-
+        h('button', { class: 'btn', onclick: () => action('rebuild', t('rebuild'), t('rebuildText'), t('rebuild')) }, icon('sync'), t('rebuild')),
+        h('button', { class: 'btn', onclick: () => action('clear-history', t('clearHistory'), t('clearHistoryText'), t('clear'), true) }, icon('history'), t('clearHistory')),
+        h('button', { class: 'btn danger-solid', onclick: () => action('reset', t('reset'), t('resetText'), t('resetOk'), true) }, icon('trash'), t('reset')))));
   async function load() {
     const st = await GET('/api/storage');
     const x = st.stats;
-    stats.replaceChildren(
-      ...[[x.movies, 'movies'], [x.shows, 'shows'], [x.files, 'video files'], [x.posters, 'with posters'], [x.watchlist, 'in watchlist'], [x.plays, 'played']]
-        .map(([v, l]) => h('div', { class: 'stat' }, h('b', { text: num(v) }), h('span', { text: l }))),
-      h('div', { class: 'stat' }, h('b', { text: size(x.bytes) || '—' }), h('span', { text: 'of video (where listed)' })),
-      h('div', { class: 'stat' }, h('b', { text: size(st.db_bytes) }), h('span', { text: 'database' })));
-    kv.replaceChildren(
-      h('span', { text: 'Data folder' }), h('code', { text: st.data_dir }),
-      h('span', { text: 'Settings file' }), h('code', { text: st.config_path }),
-      h('span', { text: 'Database' }), h('code', { text: st.db_path }));
+    fill(stats, [[x.lectures, 'statLectures'], [x.series, 'statSeries'], [x.quran, 'statQuran'], [x.speakers, 'statSpeakers'], [x.files, 'statFiles']]
+      .map(([v, l]) => h('div', { class: 'stat' }, h('b', { text: num(v) }), h('span', { text: t(l) }))),
+    h('div', { class: 'stat' }, h('b', { text: num(Math.round((x.seconds || 0) / 3600)) }), h('span', { text: t('statHours') })),
+    h('div', { class: 'stat' }, h('b', { text: size(st.db_bytes) }), h('span', { text: t('statDb') })));
+    fill(kv, h('span', { text: t('dataFolder') }), h('code', { text: st.data_dir }), h('span', { text: t('settingsFile') }), h('code', { text: st.config_path }), h('span', { text: t('database') }), h('code', { text: st.db_path }));
   }
   await load();
 }
 
+function modal(content) {
+  const back = h('div', { class: 'modal-back', onclick(e) { if (e.target === back) close(); } }, h('div', { class: 'modal' }, content));
+  const onKey = (e) => { if (e.key === 'Escape') close(); };
+  function close() { back.remove(); document.removeEventListener('keydown', onKey); }
+  document.addEventListener('keydown', onKey);
+  $('#overlay-root').append(back);
+  return close;
+}
+function confirmBox(title, text, okLabel, danger = false) {
+  return new Promise((resolve) => {
+    const close = modal(h('div', {}, h('h2', { text: title }), h('p', { text }),
+      h('div', { class: 'actions' },
+        h('button', { class: 'btn', text: t('cancel'), onclick() { close(); resolve(false); } }),
+        h('button', { class: 'btn ' + (danger ? 'danger-solid' : 'primary'), text: okLabel, onclick() { close(); resolve(true); } }))));
+  });
+}
+
 // --------------------------------------------------------- assistant
 const assistant = { open: false, messages: null, busy: false };
-const SUGGESTIONS = [
-  'কোরিয়ান রোমান্টিক কমেডি ড্রামা সাজেস্ট করো',
-  'Hindi dubbed action movies from the last few years',
-  'Something like Interstellar',
-  'আজ রাতে পরিবারের সাথে দেখার মতো মজার মুভি',
-];
-
 $('#fab').append(icon('sparkles'));
 $('#fab').onclick = () => toggleAssistant();
-
 async function toggleAssistant(force) {
   assistant.open = force ?? !assistant.open;
   $('#assistant').hidden = !assistant.open;
-  const fab = $('#fab');
-  fab.classList.toggle('open', assistant.open);
-  fab.replaceChildren(icon(assistant.open ? 'x' : 'sparkles'));
+  $('#fab').classList.toggle('open', assistant.open);
+  $('#fab').replaceChildren(icon(assistant.open ? 'x' : 'sparkles'));
   if (!assistant.open) return;
   if (assistant.messages === null) {
     assistant.messages = [];
@@ -1289,65 +1490,47 @@ async function toggleAssistant(force) {
     try { assistant.messages = (await GET('/api/assistant')).messages; } catch { /* empty chat */ }
   }
   renderAssistant();
-  $('#assistant input')?.focus();
 }
-
 function renderAssistant() {
-  const box = $('#assistant');
   const flags = app.state?.flags || {};
-  const counts = app.state?.counts || {};
+  const c = app.state?.counts || {};
   const bodyEl = h('div', { class: 'as-body' });
-  const input = h('input', { placeholder: 'e.g. a slow-burn Korean thriller…', disabled: assistant.busy || !flags.assistant });
-  const send = h('button', { class: 'send', title: 'Send', disabled: assistant.busy || !flags.assistant, onclick: () => ask(input.value) }, icon('send'));
+  const input = h('input', { placeholder: t('asPh'), disabled: assistant.busy || !flags.assistant });
+  const send = h('button', { class: 'send', disabled: assistant.busy || !flags.assistant, onclick: () => ask(input.value) }, icon('send'));
   input.addEventListener('keydown', (e) => { if (e.key === 'Enter') ask(input.value); });
-
   if (!flags.assistant) {
-    bodyEl.append(h('div', { class: 'as-intro' },
-      h('h3', { text: 'Set up the assistant' }),
-      h('p', { text: 'Add a free Google Gemini API key and the assistant will suggest titles from your own library.' }),
-      h('a', { class: 'btn primary', href: '#/settings/assistant', onclick: () => toggleAssistant(false) }, icon('sliders'), 'Open AI assistant settings')));
+    bodyEl.append(h('div', { class: 'as-intro' }, h('h3', { text: t('asSetupTitle') }), h('p', { text: t('asSetupText') }),
+      h('a', { class: 'btn primary', href: '#/settings/assistant', onclick: () => toggleAssistant(false) }, icon('sliders'), t('asOpenSettings'))));
   } else if (!assistant.messages?.length) {
-    bodyEl.append(h('div', { class: 'as-intro' },
-      h('h3', { text: 'What do you feel like watching?' }),
-      h('p', { text: `Describe a mood, genre, language or a title you liked. I'll pick from your ${num(counts.movies)} movies and ${num(counts.shows)} shows.` }),
-      SUGGESTIONS.map((s) => h('button', { class: 'suggestion', text: s, onclick: () => ask(s) }))));
+    bodyEl.append(h('div', { class: 'as-intro' }, h('h3', { text: t('asHello') }), h('p', { text: t('asHelloText', c.lectures || 0, c.series || 0, c.quran || 0) }),
+      t('suggestions').map((x) => h('button', { class: 'suggestion', text: x, onclick: () => ask(x) }))));
   } else {
     for (const m of assistant.messages) {
       if (m.role === 'user') bodyEl.append(h('div', { class: 'msg-user', text: m.text }));
       else if (m.role === 'error') bodyEl.append(h('div', { class: 'msg-err', text: m.text }));
-      else {
-        bodyEl.append(h('div', { class: 'msg-bot' }, m.text,
-          m.picks?.length ? h('div', { class: 'picks' }, m.picks.map((c) => h('div', { class: 'pick', onclick: () => go('#/title/' + c.id) },
-            c.poster ? h('img', { src: c.poster, alt: '', loading: 'lazy' }) : h('div', { class: 'ph' }),
-            h('div', {}, h('b', { text: c.name }), h('span', { text: [years(c), c.kind === 'show' ? 'TV show' : 'Movie', c.rating && `★ ${c.rating.toFixed(1)}`].filter(Boolean).join(' · ') }))))) : null));
-      }
+      else bodyEl.append(h('div', { class: 'msg-bot' }, m.text,
+        m.picks?.length ? h('div', { class: 'picks' }, m.picks.map((p) => h('div', { class: 'pick', onclick: () => go('#/title/' + p.id) },
+          p.poster ? h('img', { src: p.poster, alt: '', loading: 'lazy' }) : h('div', { class: 'ph' }),
+          h('div', {}, h('b', { text: p.name }), h('span', { text: [p.speaker, p.total_duration && human(p.total_duration)].filter(Boolean).join(' · ') }))))) : null));
     }
     if (assistant.busy) bodyEl.append(h('div', { class: 'typing' }, h('i'), h('i'), h('i')));
   }
-
-  box.replaceChildren(
-    h('div', { class: 'as-head' },
-      h('div', { class: 'as-icon' }, icon('sparkles')),
-      h('div', { class: 'grow' }, h('b', { text: 'Watch assistant' }), h('small', { text: `Finds picks in your library · ${flags.model || 'Gemini'} · chat is saved` })),
-      h('button', { class: 'icon-btn', title: 'Close', onclick: () => toggleAssistant(false) }, icon('x'))),
-    bodyEl,
-    h('div', { class: 'as-foot' }, input, send));
+  fill($('#assistant'),
+    h('div', { class: 'as-head' }, h('div', { class: 'as-icon' }, icon('sparkles')),
+      h('div', { class: 'grow' }, h('b', { text: t('asTitle') }), h('small', { text: t('asSub', flags.model || 'Gemini') })),
+      h('button', { class: 'icon-btn', onclick: () => toggleAssistant(false) }, icon('x'))),
+    bodyEl, h('div', { class: 'as-foot' }, input, send));
   bodyEl.scrollTop = bodyEl.scrollHeight;
   if (!assistant.busy && flags.assistant) input.focus();
 }
-
 async function ask(text) {
   text = (text || '').trim();
   if (!text || assistant.busy) return;
   assistant.messages.push({ role: 'user', text });
   assistant.busy = true;
   renderAssistant();
-  try {
-    const r = await POST('/api/assistant', { message: text });
-    assistant.messages.push({ role: 'assistant', text: r.reply, picks: r.picks });
-  } catch (e) {
-    assistant.messages.push({ role: 'error', text: e.message });
-  }
+  try { const r = await POST('/api/assistant', { message: text }); assistant.messages.push({ role: 'assistant', text: r.reply, picks: r.picks }); }
+  catch (e) { assistant.messages.push({ role: 'error', text: e.message }); }
   assistant.busy = false;
   renderAssistant();
 }
@@ -1359,8 +1542,8 @@ async function ask(text) {
   $('#job-stop').append(icon('stop'));
   $('#add-source').append(icon('plus'));
   $('#add-source').onclick = () => go('#/settings/sources');
-  $('#job-stop').onclick = async () => { await POST('/api/jobs/stop').catch(() => {}); toast('Stopping…'); refreshState(); };
-
+  $('#job-stop').onclick = async () => { await POST('/api/jobs/stop').catch(() => {}); toast(t('stopping')); refreshState(); };
+  $('#lang-toggle').onclick = () => setLang(lang === 'bn' ? 'en' : 'bn');
   const input = $('#search');
   let timer = 0;
   input.addEventListener('input', () => {
@@ -1368,33 +1551,24 @@ async function ask(text) {
     timer = setTimeout(() => {
       const q = input.value.trim();
       const target = '#/search/' + encodeURIComponent(q);
-      if (!q) {
-        if (location.hash.startsWith('#/search/')) history.back();
-        return;
-      }
+      if (!q) { if (location.hash.startsWith('#/search/')) history.back(); return; }
       delete app.gridMemo[target];
-      if (location.hash.startsWith('#/search/')) {
-        history.replaceState(null, '', target);
-        route();
-      } else {
-        location.hash = target;
-      }
+      if (location.hash.startsWith('#/search/')) { history.replaceState(null, '', target); route(); }
+      else location.hash = target;
     }, 220);
   });
-  input.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') { input.value = ''; input.blur(); if (location.hash.startsWith('#/search/')) history.back(); }
-  });
+  input.addEventListener('keydown', (e) => { if (e.key === 'Escape') { input.value = ''; input.blur(); if (location.hash.startsWith('#/search/')) history.back(); } });
   document.addEventListener('keydown', (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-      e.preventDefault();
-      input.focus();
-      input.select();
-    } else if (e.key === '/' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) {
-      e.preventDefault();
-      input.focus();
-    }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); input.focus(); input.select(); }
+    else if (e.key === '/' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) { e.preventDefault(); input.focus(); }
   });
 })();
 
 window.addEventListener('hashchange', route);
-refreshState().then(route);
+applyStaticText();
+refreshState().then(() => {
+  // The saved setting wins over this browser's memory on first load.
+  const saved = app.state?.flags?.language;
+  if (saved && saved !== lang) { lang = saved; try { localStorage.setItem('noor.lang', lang); } catch { /* ignore */ } applyStaticText(); renderSidebar(); }
+  route();
+});

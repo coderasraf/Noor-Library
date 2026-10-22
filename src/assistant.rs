@@ -21,7 +21,6 @@ use serde_json::{json, Value};
 use crate::config;
 use crate::index::{fts_query, unix_now};
 use crate::library::{self, Card};
-use crate::naming;
 
 const API: &str = "https://generativelanguage.googleapis.com/v1beta";
 
@@ -241,44 +240,41 @@ fn save(conn: &Connection, role: &str, text: &str, picks: &[i64]) -> Result<()> 
     Ok(())
 }
 
-/// Facts about the library for the intent pass.
+//// Facts about the library for the intent pass: what kinds of content,
+/// which speakers and topics, in which languages.
 pub fn library_summary(conn: &Connection) -> Result<String> {
     let c = library::counts(conn)?;
-    let mut stmt = conn.prepare(
-        "SELECT language, COUNT(*) FROM titles WHERE language IS NOT NULL
-         GROUP BY language ORDER BY COUNT(*) DESC LIMIT 12",
-    )?;
-    let langs: Vec<String> = stmt
-        .query_map([], |r| Ok(format!("{}:{}", r.get::<_, String>(0)?, r.get::<_, i64>(1)?)))?
-        .collect::<rusqlite::Result<_>>()?;
     let facets = library::facets(conn, &library::Query::default())?;
-    let genres: Vec<String> = facets.genres.iter().map(|g| g.value.clone()).collect();
+    let speakers: Vec<String> = facets.speakers.iter().take(60).map(|f| f.value.clone()).collect();
+    let topics: Vec<String> = facets.topics.iter().map(|f| format!("{}:{}", f.value, f.count)).collect();
+    let langs: Vec<String> = facets.languages.iter().map(|f| format!("{}:{}", f.value, f.count)).collect();
     Ok(format!(
-        "{} movies and {} TV shows. Genres: {}. Original languages (ISO 639-1:count): {}.",
-        c.movies,
-        c.shows,
-        if genres.is_empty() { "unknown".into() } else { genres.join(", ") },
+        "{} lectures, {} series and {} Quran recitations. Speakers: {}. Topics (key:count): {}. Languages (ISO 639-1:count): {}.",
+        c.lectures,
+        c.series,
+        c.quran,
+        if speakers.is_empty() { "unknown".into() } else { speakers.join(", ") },
+        if topics.is_empty() { "none tagged".into() } else { topics.join(", ") },
         if langs.is_empty() { "unknown".into() } else { langs.join(", ") },
     ))
 }
 
-const INTENT_PROMPT: &str = r#"You help someone choose what to watch from their own media library.
+const INTENT_PROMPT: &str = r#"You help someone find Islamic lectures, series and Quran recitations in their own library.
 Turn their latest request into a search plan. Reply with JSON only:
 {
-  "titles": [{"name": "exact well-known title", "year": 2010, "kind": "movie" or "show"}],
-  "genres": ["TMDB genre names, e.g. Action, Comedy, Drama, Romance, Thriller, Horror, Animation, Crime, Science Fiction, Family, Mystery, Adventure, Fantasy, Documentary, Action & Adventure, Sci-Fi & Fantasy"],
-  "language": "ISO 639-1 code of the original language, or null",
-  "kind": "movie" | "show" | null,
-  "year_from": number or null,
-  "year_to": number or null,
-  "keywords": ["words likely to appear in matching titles"]
+  "titles": ["names of specific lectures or series that would fit, if any are well known"],
+  "speakers": ["speaker names from the library's speaker list that fit the request"],
+  "topics": ["topic keys from the library's topic list, e.g. Salah, Ramadan, Seerah, Family, Patience, Akhirah"],
+  "language": "ISO 639-1 code (bn, en, ar, ur, hi) or null",
+  "kind": "lecture" | "series" | "quran" | null,
+  "max_minutes": number or null,
+  "keywords": ["words likely to appear in matching titles, in English AND Bangla"]
 }
-Put 10 to 25 specific, well-known titles that fit the request in "titles" (for "something like X", list titles similar to X, plus X itself).
-"Hindi dubbed" means Indian or foreign films; language can stay null. Korean means "ko", Hindi "hi", Tamil "ta", Telugu "te", Malayalam "ml", Bengali "bn", Japanese "ja", English "en".
-"Last few years" means year_from = current year minus 3."#;
+Use only speaker names and topic keys that appear in the library summary. "Bangla" or a request written in Bangla means language "bn" unless the user asks otherwise. "Short" means max_minutes 20. A request for recitation, tilawat or a surah means kind "quran"."#;
 
-const CHOOSE_PROMPT: &str = r#"You are a friendly watch assistant for someone's personal media library.
-Recommend titles ONLY from the candidate list provided (each has an id). Never mention titles that are not in the list.
+const CHOOSE_PROMPT: &str = r#"You are a kind, respectful assistant for someone's personal Islamic media library.
+Recommend items ONLY from the candidate list provided (each has an id). Never mention lectures, speakers or recitations that are not in the list.
+Never give religious rulings (fatwa), never declare anything halal or haram, and never interpret the Quran or hadith yourself. If the user asks a religious question, point them to relevant lectures from the list and suggest asking a qualified scholar.
 Reply with JSON only: {"reply": "short, warm answer (2-4 sentences) in the same language the user wrote in", "picks": [candidate ids, best first, at most 8]}
 If no candidate fits, say so honestly in "reply", suggest how to rephrase, and return an empty "picks"."#;
 
@@ -319,12 +315,8 @@ where
     })?;
 
     // Pass 1: intent.
-    let year = 1970 + unix_now() / 31_557_600;
     let mut turns = past.clone();
-    turns.push((
-        "user".into(),
-        format!("Current year: {year}. Library: {summary}\n\nRequest: {message}"),
-    ));
+    turns.push(("user".into(), format!("Library: {summary}\n\nRequest: {message}")));
     let plan = generate(cfg, INTENT_PROMPT, &turns).await?;
 
     // Candidates from the library.
@@ -338,8 +330,9 @@ where
     let list: Vec<Value> = candidates
         .iter()
         .map(|c| {
-            json!({ "id": c.id, "title": c.name, "year": c.year, "kind": c.kind,
-                    "genres": c.genres, "rating": c.rating, "language": c.language, "audio": c.audio })
+            json!({ "id": c.id, "title": c.name, "speaker": c.speaker, "kind": c.kind,
+                    "topics": c.topics, "language": c.language,
+                    "minutes": c.seconds.map(|s| (s + 30) / 60) })
         })
         .collect();
     let mut turns = past;
@@ -377,30 +370,37 @@ where
 struct Candidate {
     id: i64,
     name: String,
-    year: Option<u32>,
     kind: String,
-    genres: Option<String>,
-    rating: Option<f64>,
+    speaker: Option<String>,
+    topics: Option<String>,
     language: Option<String>,
-    audio: Option<String>,
+    seconds: Option<i64>,
 }
 
-const CANDIDATE_COLUMNS: &str = "id, name, year, kind, TRIM(genres, ','), rating, language, audio";
+const CANDIDATE_COLUMNS: &str = "id, name, kind, speaker, TRIM(topics, ','), language, total_duration";
 
 fn candidate(r: &rusqlite::Row) -> rusqlite::Result<Candidate> {
     Ok(Candidate {
         id: r.get(0)?,
         name: r.get(1)?,
-        year: r.get(2)?,
-        kind: r.get(3)?,
-        genres: r.get(4)?,
-        rating: r.get(5)?,
-        language: r.get(6)?,
-        audio: r.get(7)?,
+        kind: r.get(2)?,
+        speaker: r.get(3)?,
+        topics: r.get(4)?,
+        language: r.get(5)?,
+        seconds: r.get(6)?,
     })
 }
 
 const MAX_CANDIDATES: usize = 120;
+
+fn strings(v: &Value) -> Vec<String> {
+    v.as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|x| x.as_str().map(|s| s.trim().to_string()))
+        .filter(|s| !s.is_empty())
+        .collect()
+}
 
 fn gather_candidates(conn: &Connection, plan: &Value) -> Result<Vec<Candidate>> {
     let mut out: Vec<Candidate> = Vec::new();
@@ -411,97 +411,76 @@ fn gather_candidates(conn: &Connection, plan: &Value) -> Result<Vec<Candidate>> 
         }
     };
 
-    // 1. The model's concrete guesses, matched by title.
-    let mut by_name = conn.prepare(&format!(
-        "SELECT {CANDIDATE_COLUMNS} FROM titles
-         WHERE id IN (SELECT rowid FROM titles_fts WHERE titles_fts MATCH ?1) LIMIT 10"
-    ))?;
-    for t in plan["titles"].as_array().into_iter().flatten() {
-        let Some(name) = t["name"].as_str() else { continue };
-        let Some(q) = fts_query(name) else { continue };
-        let want = naming::title_key(name);
-        let year = t["year"].as_u64().map(|y| y as u32);
-        let rows: Vec<Candidate> = by_name
-            .query_map([q], candidate)?
-            .collect::<rusqlite::Result<_>>()?;
-        // Exact title matches only, so "Up" doesn't drag in "Upgrade".
-        for c in rows {
-            let same_name = naming::title_key(&c.name) == want;
-            let year_ok = match (year, c.year) {
-                (Some(a), Some(b)) => a.abs_diff(b) <= 1,
-                _ => true,
-            };
-            if same_name && year_ok {
-                add(c, &mut out);
-            }
-        }
-    }
-
-    // 2. Filter matches, best rated first.
-    let mut sql = format!("SELECT {CANDIDATE_COLUMNS} FROM titles WHERE 1=1");
-    let mut args: Vec<rusqlite::types::Value> = Vec::new();
-    if let Some(k) = plan["kind"].as_str().filter(|k| matches!(*k, "movie" | "show")) {
-        sql.push_str(" AND kind = ?");
-        args.push(k.to_string().into());
+    // Shared filters: kind, language, length.
+    let mut filter = String::new();
+    let mut base_args: Vec<rusqlite::types::Value> = Vec::new();
+    if let Some(k) = plan["kind"].as_str().filter(|k| matches!(*k, "lecture" | "series" | "quran")) {
+        filter.push_str(" AND kind = ?");
+        base_args.push(k.to_string().into());
     }
     if let Some(l) = plan["language"].as_str().filter(|l| l.len() == 2) {
-        sql.push_str(" AND language = ?");
-        args.push(l.to_string().into());
+        filter.push_str(" AND (language = ? OR language IS NULL)");
+        base_args.push(l.to_string().into());
     }
-    if let Some(y) = plan["year_from"].as_i64() {
-        sql.push_str(" AND year >= ?");
-        args.push(y.into());
+    if let Some(m) = plan["max_minutes"].as_i64().filter(|m| *m > 0) {
+        filter.push_str(" AND (total_duration IS NULL OR total_duration <= ?)");
+        base_args.push((m * 60).into());
     }
-    if let Some(y) = plan["year_to"].as_i64() {
-        sql.push_str(" AND year <= ?");
-        args.push(y.into());
-    }
-    let genres: Vec<String> = plan["genres"]
-        .as_array()
-        .into_iter()
-        .flatten()
-        .filter_map(|g| g.as_str().map(String::from))
-        .collect();
-    if !genres.is_empty() {
-        let ors: Vec<&str> = genres.iter().map(|_| "genres LIKE ?").collect();
-        sql.push_str(&format!(" AND ({})", ors.join(" OR ")));
-        for g in &genres {
-            args.push(format!("%,{g},%").into());
-        }
-    }
-    let filtered = !args.is_empty();
-    sql.push_str(" ORDER BY rating IS NULL, rating DESC, added_at DESC LIMIT 100");
-    if filtered {
-        let mut stmt = conn.prepare(&sql)?;
+
+    // 1. Named titles and keywords, through the search index.
+    let mut terms = strings(&plan["titles"]);
+    terms.extend(strings(&plan["keywords"]));
+    let q: Vec<String> = terms.iter().filter_map(|t| fts_query(t)).map(|q| format!("({q})")).collect();
+    if !q.is_empty() {
+        let mut args = vec![rusqlite::types::Value::from(q.join(" OR "))];
+        args.extend(base_args.iter().cloned());
+        let mut stmt = conn.prepare(&format!(
+            "SELECT {CANDIDATE_COLUMNS} FROM titles
+             WHERE id IN (SELECT rowid FROM titles_fts WHERE titles_fts MATCH ?){filter}
+             ORDER BY added_at DESC LIMIT 50"
+        ))?;
         for c in stmt.query_map(params_from_iter(args.iter()), candidate)? {
             add(c?, &mut out);
         }
     }
 
-    // 3. Keywords, for libraries without looked-up genres.
-    let keywords: Vec<&str> = plan["keywords"].as_array().into_iter().flatten().filter_map(Value::as_str).collect();
-    if out.len() < 30 && !keywords.is_empty() {
+    // 2. The speakers asked for (or picked by the plan).
+    let speakers = strings(&plan["speakers"]);
+    if !speakers.is_empty() {
+        let marks = vec!["?"; speakers.len()].join(",");
+        let mut args: Vec<rusqlite::types::Value> = speakers.iter().map(|s| s.clone().into()).collect();
+        args.extend(base_args.iter().cloned());
         let mut stmt = conn.prepare(&format!(
-            "SELECT {CANDIDATE_COLUMNS} FROM titles
-             WHERE id IN (SELECT rowid FROM titles_fts WHERE titles_fts MATCH ?1) LIMIT 40"
+            "SELECT {CANDIDATE_COLUMNS} FROM titles WHERE speaker IN ({marks}){filter}
+             ORDER BY added_at DESC LIMIT 60"
         ))?;
-        let q: Vec<String> = keywords.iter().filter_map(|k| fts_query(k)).collect();
-        if !q.is_empty() {
-            for c in stmt.query_map([q.join(" OR ")], candidate)? {
-                add(c?, &mut out);
-            }
+        for c in stmt.query_map(params_from_iter(args.iter()), candidate)? {
+            add(c?, &mut out);
         }
     }
 
-    // 4. Still thin: popular picks of the requested kind, so the model has
-    // something real to choose from.
-    if out.len() < 15 {
-        let kind = plan["kind"].as_str().unwrap_or("");
+    // 3. Topic matches.
+    let topics = strings(&plan["topics"]);
+    if !topics.is_empty() {
+        let ors = vec!["topics LIKE ?"; topics.len()].join(" OR ");
+        let mut args: Vec<rusqlite::types::Value> = topics.iter().map(|t| format!("%,{t},%").into()).collect();
+        args.extend(base_args.iter().cloned());
         let mut stmt = conn.prepare(&format!(
-            "SELECT {CANDIDATE_COLUMNS} FROM titles WHERE (?1 = '' OR kind = ?1)
-             ORDER BY rating IS NULL, rating DESC, added_at DESC LIMIT 60"
+            "SELECT {CANDIDATE_COLUMNS} FROM titles WHERE ({ors}){filter}
+             ORDER BY added_at DESC LIMIT 80"
         ))?;
-        for c in stmt.query_map([kind], candidate)? {
+        for c in stmt.query_map(params_from_iter(args.iter()), candidate)? {
+            add(c?, &mut out);
+        }
+    }
+
+    // 4. Still thin: recent items of the requested kind and language, so the
+    // model has something real to choose from.
+    if out.len() < 15 {
+        let mut stmt = conn.prepare(&format!(
+            "SELECT {CANDIDATE_COLUMNS} FROM titles WHERE 1=1{filter} ORDER BY added_at DESC LIMIT 60"
+        ))?;
+        for c in stmt.query_map(params_from_iter(base_args.iter()), candidate)? {
             add(c?, &mut out);
         }
     }
