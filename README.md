@@ -1,308 +1,217 @@
 <div align="center">
 
-<img src="assets/icon-256.png" width="96" alt="medialib logo">
+<img src="assets/icon-256.png" width="96" alt="Noor Library logo">
 
-# medialib
+# Noor Library · নূর লাইব্রেরি
 
-**Turn any folder-listing media server into a Netflix-style library on your desktop.**
+**Your own Islamic media library for lectures, series and Quran recitations, in Bangla and English.**
 
-Point it at a link like `http://server/Movies/`. medialib scans every folder,
-groups the files into movies and TV shows with posters, and lets you browse,
-search and play them in VLC or right inside the app.
+Add a server folder link, a folder on your PC, a YouTube channel or a podcast
+feed. Noor Library brings them together in one calm, searchable library,
+grouped by speaker and topic, with a built-in player that remembers where you
+stopped.
 
 ![Rust](https://img.shields.io/badge/Rust-2021-b7410e?logo=rust&logoColor=white)
 ![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D6?logo=windows&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-FTS5-003B57?logo=sqlite&logoColor=white)
-![WebView2](https://img.shields.io/badge/UI-WebView2-2f6feb)
-![Tests](https://img.shields.io/badge/tests-31%20passing-3ccf8e)
+![Bangla + English](https://img.shields.io/badge/UI-বাংলা%20%2B%20English-10b981)
+![Tests](https://img.shields.io/badge/tests-38%20passing-3ccf8e)
 
-<img src="docs/screenshots/movies.jpg" alt="The Movies grid with filters" width="100%">
+<img src="docs/screenshots/home.jpg" alt="Noor Library home page in Bangla" width="100%">
 
 </div>
 
 ---
 
-## Why medialib?
+## Why Noor Library?
 
-Many home, campus and ISP media servers (the kind that show a plain list of
-folders and files in the browser) hold huge collections. Finding something to
-watch means clicking through dozens of folders. medialib indexes it all once
-and gives you a real library:
+Islamic lectures are scattered. Some sit on a local FTP or media server, some
+on a hard drive, some on YouTube channels, and some in podcast apps. Each has
+its own clumsy interface, and none of them remembers what you were listening
+to.
 
-- 🎬 **Posters, not folders.** Movies and shows get their own cards, and each
-  show page lists its seasons and episodes.
-- ⚡ **Instant search.** Results appear as you type, across 40,000+ titles,
-  without touching the network.
-- ▶️ **One-click play.** Videos open in VLC, playlists play whole seasons back to
-  back, and MP4s can play inside the app.
-- 🧠 **A watch assistant that only suggests what you actually have.**
+Noor Library indexes all of them once and gives you one place to listen:
 
-It has been used on a real library of **35,000+ movies and 5,000+ shows** (over
-210,000 video files) spread across several servers.
-
-## Features
-
-<table>
-<tr>
-<td width="50%" valign="top">
-
-### 📚 Library
-- Movies and TV shows grouped automatically from folder and file names
-- Posters taken from the server's own folder images, or from TMDB
-- **Dual Audio**, **Multi Audio** and **Ongoing** badges
-- Filters: year, genre, quality, platform (Netflix, Prime…), folder, audio, status
-- Sorting: recently added or updated, title, newest, top rated
-- Each source has its own page in the sidebar
-
-</td>
-<td width="50%" valign="top">
-
-### 📺 Show pages
-- Backdrop, poster, rating, genres, country, plot and credits
-- Season tabs with episode titles, air dates, runtimes and stills
-- **Up next** follows what you watched last
-- Watched ticks on every episode
-- When an episode exists twice (dubbed and original), you choose the version
-- **Play as playlist** sends the rest of the season to VLC
-
-</td>
-</tr>
-<tr>
-<td valign="top">
-
-### 🔄 Sources and sync
-- Add any directory-listing link, or a folder on your PC
-- *Check link* tests a link and guesses whether it holds movies or TV shows
-- Background sync with a live progress pill and a stop button
-- Interrupted syncs resume where they stopped
-- **Full rescan** removes files that are gone from the server
-
-</td>
-<td valign="top">
-
-### ✨ Extras
-- **Watch assistant** (Google Gemini): ask in any language, for example
-  *"a slow-burn Korean thriller"*
-- **Movie info** from TMDB: genres, ratings, plots, episode names
-- Watchlist and *Recently played*
-- **Ctrl K** search from anywhere
-- A command-line tool built on the same library
-
-</td>
-</tr>
-</table>
+- 🎙️ **Lectures, series and Quran, each in its own section.** A folder of
+  numbered files becomes one series with its episodes in order. A reciter's
+  folder becomes one Quran title with all 114 surahs.
+- 👤 **Browse by speaker.** It finds speakers from folder names, podcast
+  authors and video titles ("… | Dr. Omar Suleiman").
+- 🏷️ **Browse by topic.** Salah, Ramadan, Seerah, Family, Patience, Akhirah and
+  24 more topics are detected from titles in English and Bangla.
+- ▶️ **A built-in player that remembers your place.** It has speed control,
+  ±15/30 s skips, a queue and *Continue listening*. YouTube plays in the app
+  too.
+- 🌐 **Bangla or English, with one click.** The interface, numbers and dates
+  all switch, and surah names show in Arabic, English and Bangla.
+- 🔒 **Private by design.** Everything stays on your PC: the library, your
+  history and your keys. Nothing is uploaded.
 
 ## Screenshots
 
 <table>
-<tr>
-<td width="50%"><img src="docs/screenshots/search.jpg" alt="Search"><p align="center"><b>Search:</b> instant results across movies and shows</p></td>
-<td width="50%"><img src="docs/screenshots/shows.jpg" alt="TV Shows"><p align="center"><b>TV Shows:</b> ongoing and audio badges, status filter</p></td>
-</tr>
-<tr>
-<td><img src="docs/screenshots/show.jpg" alt="Show page"><p align="center"><b>Show page:</b> seasons, episodes, Up next</p></td>
-<td><img src="docs/screenshots/movie.jpg" alt="Movie page"><p align="center"><b>Movie page:</b> every version of a film in one place</p></td>
-</tr>
-<tr>
-<td colspan="2"><img src="docs/screenshots/settings.jpg" alt="Sources settings"><p align="center"><b>Sources:</b> add links, check them, and watch each one sync</p></td>
-</tr>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/player.jpg" alt="Quran recitation with surah list and player"><br><sub><b>Quran:</b> 114 surahs with Arabic, English and Bangla names, and the player bar</sub></td>
+    <td width="50%"><img src="docs/screenshots/series-en.jpg" alt="A series page in English"><br><sub><b>Series:</b> episodes in order, with <i>Up next</i> picking up where you left off</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/lectures.jpg" alt="Lectures grid with filters"><br><sub><b>Lectures:</b> filter by speaker, topic, language, length and year</sub></td>
+    <td><img src="docs/screenshots/speakers.jpg" alt="Speakers page"><br><sub><b>Speakers:</b> every scholar in your library</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/topics.jpg" alt="Topics page"><br><sub><b>Topics:</b> lectures grouped by subject</sub></td>
+    <td><img src="docs/screenshots/set-sources.jpg" alt="Adding a source"><br><sub><b>Sources:</b> paste a link or pick a folder, and Noor Library works out the rest</sub></td>
+  </tr>
 </table>
+
+## Features
+
+### Four kinds of sources
+
+| Source | Example | What you need |
+|---|---|---|
+| 🌐 **Server folder link** | `http://172.16.50.4/Islamic/Waz/` | Any web server that shows a plain folder listing (FTP-style media servers, `python -m http.server`, nginx/Apache autoindex, archive.org) |
+| 📁 **Folder on this PC** | `D:\Lectures\Tafsir` | Nothing |
+| ▶️ **YouTube channel or playlist** | `https://www.youtube.com/@YaqeenInstitute` | A free YouTube Data API key (steps are in Settings › YouTube) |
+| 📡 **Podcast feed** | `https://rss.buzzsprout.com/1014445.rss` | Nothing (RSS and Atom both work) |
+
+When you add a source, **Check link** detects what the link is and suggests a
+type: *Lectures*, *Series* or *Quran*. You can also set:
+
+- **Speaker:** for a source where one speaker gives every talk.
+- **Speaker folders:** for layouts like `Waz/<Speaker>/<talk>.mp3`.
+
+### How it organises your files
+
+| You have | Noor Library shows |
+|---|---|
+| `Speaker/01 Tawheed.mp3`, `Speaker/02 Tawheed.mp3` | One lecture, *Tawheed*, in 2 parts |
+| `Tafsir/Part 1.mp3` … `Part 30.mp3` (as *Series*) | One series with 30 episodes in order |
+| `Reciter/001.mp3` … `114.mp3` (as *Quran*) | One recitation with all 114 surahs, named |
+| `talk.mp3` **and** `talk.wav` | A single item (the MP3 is preferred) |
+| A YouTube channel (as *Lectures*) | One lecture per video, with the speaker taken from the title |
+| A podcast (as *Series*) | One series with episodes ordered by date |
+
+Episode numbers are read from `S01E02`, `Part 3`, `Episode 4`, `পর্ব ৫`,
+`07 - …` and trailing numbers, in Bangla or Latin digits. A talk's language
+(Bangla, English, Arabic, Urdu, Hindi) is detected from its title.
+
+### Listening
+
+- The built-in player handles MP3, M4A, AAC, OGG, Opus, WAV, FLAC, MP4 and
+  WebM, and YouTube videos play in an embedded player.
+- Formats the built-in player can't handle (WMA, AMR, MKV, AVI…) open in
+  **VLC** or any player you choose.
+- Your place is saved every few seconds. A talk counts as finished at 95%.
+- *Play all* queues a whole series, or every surah from where you are.
+- Save items to *Saved*, mark them as finished, or clear your history.
+
+### AI assistant (optional)
+
+Click ✨ and ask in Bangla or English, for example: *"ধৈর্য নিয়ে ছোট
+বাংলা লেকচার"* ("a short Bangla lecture on patience") or *"Something for
+Ramadan under 20 minutes"*.
+
+The assistant uses Google Gemini and **only recommends items that are already
+in your library**. It doesn't give religious rulings. For those, it points
+you to relevant lectures and suggests asking a qualified scholar. It needs a
+free Gemini API key from [Google AI Studio](https://aistudio.google.com/apikey).
+
+## Install
+
+### Option 1: build from source (Windows)
+
+You need [Rust](https://rustup.rs) (stable) and the Microsoft Edge WebView2
+runtime, which Windows 10 and 11 already include.
+
+```powershell
+git clone https://github.com/<you>/noor-library.git
+cd noor-library
+cargo build --release
+```
+
+This builds two programs in `target\release\`:
+
+| Program | What it is |
+|---|---|
+| `noor-library.exe` | The desktop app: its own window, single instance |
+| `noor.exe` | The command line: crawl, search, play, and serve the UI in a browser |
+
+To install, copy `noor-library.exe` anywhere (for example
+`%LOCALAPPDATA%\Programs\NoorLibrary\`) and make a shortcut. On first run it
+creates its data folder at `%APPDATA%\NoorLibrary`.
+
+### Option 2: command line
+
+```powershell
+noor -c config.toml crawl            # index every source
+noor -c config.toml search tawheed   # search the index (offline)
+noor -c config.toml play al kahf     # search, then open the best match in VLC
+noor -c config.toml serve            # open the UI at http://127.0.0.1:8080
+noor -c config.toml stats            # index size
+```
+
+See [`config.example.toml`](config.example.toml) for every setting.
 
 ## Getting started
 
-### Requirements
+1. Open **Noor Library**. The first page walks you through adding a source.
+2. Paste a link or click 📁 to choose a folder, then click **Check link**.
+3. Pick *Lectures*, *Series* or *Quran*, give the source a name, and click
+   **Add and sync**.
+4. Browse **Lectures**, **Series**, **Quran**, **Speakers** or **Topics**, or
+   press <kbd>Ctrl</kbd>+<kbd>K</kbd> to search.
 
-| | |
-|---|---|
-| **OS** | Windows 10 or 11 (the window uses Microsoft Edge WebView2, which Windows 11 already has) |
-| **Player** | [VLC](https://www.videolan.org/vlc/), or any player that accepts a URL |
-| **To build** | [Rust](https://rustup.rs) (stable) and the MSVC Build Tools (the C++ workload) |
-
-### Build and run
-
-```powershell
-git clone https://github.com/coderasraf/Medialib.git
-cd Medialib
-cargo build --release
-.\target\release\medialib-desktop.exe
-```
-
-The build produces two programs:
-
-| File | What it is |
-|---|---|
-| `medialib-desktop.exe` | the desktop app |
-| `medialib.exe` | the command-line tool |
-
-> [!NOTE]
-> If the build fails with *"An Application Control policy has blocked this
-> file (os error 4551)"*, Windows **Smart App Control** is blocking the build
-> scripts that cargo compiles. Build with Smart App Control turned off, or
-> under WSL.
-
-### First run
-
-1. Open **Settings → Sources** and paste a folder link, for example
-   `http://192.168.1.10/Movies/`. Choose **Movies** or **TV shows**, then click
-   **Add and sync**. Use **Check link** first if you're not sure which type it is.
-2. Watch the progress pill at the top right. Titles appear as each source
-   finishes syncing.
-3. *(Optional)* **Settings → Movie info:** paste a free
-   [TMDB API key](https://www.themoviedb.org/settings/api) to add genres,
-   ratings, plots, backdrops and episode names.
-4. *(Optional)* **Settings → AI assistant:** paste a free
-   [Gemini API key](https://aistudio.google.com/apikey) to turn on the ✦
-   assistant.
-
-Settings and the library database are stored in `%APPDATA%\medialib`.
-
-## Supported servers and folder layouts
-
-medialib reads the plain HTML directory listings that most media servers
-produce: **h5ai**, **nginx** `autoindex`, **Apache** `mod_autoindex`,
-**Caddy** `browse`, **lighttpd**, and `python -m http.server`. It also reads
-folders on your own PC.
-
-It understands the layouts that media collections usually use:
-
-```text
-Movies/                                  TV Shows/
-└── (2024)/                              └── Show Name (TV Series 2023– ) 720p/
-    └── Movie Name (2024) 1080p/             ├── poster.jpg
-        ├── poster.jpg                       ├── Season 1/
-        └── Movie.Name.2024.1080p.mkv        │   ├── Show.Name.S01E01.mkv
-                                             │   └── Show.Name.S01E02.mkv
-                                             └── Season 2/ …
-```
-
-| From the names it reads | Examples |
-|---|---|
-| Title and year | `Arrival (2016)`, `(1972) Pratidwandi`, `Blade Runner 2049 (2017)` |
-| Season and episode | `S01E02`, `1x02`, `Episode 05`, `Show 01.mkv` |
-| Ongoing shows | `(TV Series 2023– )` |
-| Quality | `2160p`, `1080p`, `720p` |
-| Audio | `[Dual Audio]`, `[Multi Audio]`, `[Hindi + Tamil + Telugu]` |
-| Platform | `NF`, `AMZN`, `DSNP`, `HMAX`, `ATVP`, … |
-| Multi-part films | `Movie-CD1/`, `Movie-CD2/` are joined into one title |
+> 💡 **Free sources to try**
+>
+> - Internet Archive Quran recitations: `https://archive.org/download/<item>/`
+> - The Yaqeen Institute podcast: `https://rss.buzzsprout.com/1014445.rss`
 
 ## How it works
 
-```mermaid
-flowchart LR
-    S[("Media server<br/>or local folder")] -- "HTML listings" --> C["Crawler<br/>(parallel, resumable)"]
-    C --> DB[("SQLite<br/>+ FTS5 search")]
-    DB --> G["Grouping<br/>movies · shows · episodes"]
-    G --> DB
-    TMDB(["TMDB"]) -. "posters, genres, ratings" .-> DB
-    DB <--> API["Local server<br/>127.0.0.1"]
-    API <--> UI["Desktop window<br/>(WebView2)"]
-    API -- "play / playlist" --> VLC(["VLC"])
-    Gemini(["Gemini"]) -. "assistant" .-> API
+```
+ sources ──► crawler ──► SQLite (FTS5) ──► grouping ──► local web UI ──► WebView2 window
+  HTTP folder listing      files, images,    lectures /    axum on 127.0.0.1
+  local folder             checkpoints       series /      Host-checked,
+  YouTube Data API v3                        Quran         serves /media with
+  RSS / Atom feed                                          Range support
 ```
 
-- **Scan once, search instantly.** Syncing walks the listings in parallel and
-  stores every file in SQLite. Browsing and search only read that database, so
-  they never wait on the network.
-- **Grouped into titles.** After each sync, files are grouped into movies and
-  shows. Watchlist entries and looked-up info stay attached to the same title
-  across re-syncs.
-- **Local and private.** The app's server listens only on `127.0.0.1`. Video
-  and posters stream straight from your media server, and nothing is uploaded
-  anywhere. The optional TMDB and Gemini features send only titles and your
-  questions.
-- **Grounded assistant.** Gemini suggests titles. medialib keeps only the ones
-  that exist in your library, and Gemini then picks from that real list, so
-  every suggestion is playable.
+- **Crawler:** a breadth-first walk with checkpoints, so an interrupted
+  sync carries on where it stopped. YouTube and feeds are read through their
+  APIs.
+- **Index:** SQLite with full-text search over file names, titles, speakers
+  and topics, so search is instant and works offline.
+- **Grouping:** turns files into lectures, series and Quran titles, detects
+  speakers, topics and languages, and picks artwork. It skips the
+  Internet Archive's auto-made waveform images.
+- **UI:** plain HTML, CSS and JavaScript embedded in the binary, served only to
+  `127.0.0.1`. The desktop app shows it in a native WebView2 window.
 
-The engineering details (resumable crawl checkpoints, FTS5 design, and why
-the crawler fetches before it writes) are in **[docs/DESIGN.md](docs/DESIGN.md)**.
+More detail is in [`docs/DESIGN.md`](docs/DESIGN.md).
 
-## Command-line tool
+## Privacy
 
-The same library ships as a CLI, configured by a `config.toml` (see
-[`config.example.toml`](config.example.toml)):
+- Everything lives in `%APPDATA%\NoorLibrary`: the config, the library
+  database and your listening history.
+- The app only contacts your own sources and, if you add keys, the YouTube
+  Data API and Gemini. With the AI assistant, the titles that match your
+  question are sent to Gemini so it can choose between them.
+- The local server only answers requests addressed to `127.0.0.1`, plays
+  only files in your index, and opens only a short allowlist of web pages.
 
-```powershell
-medialib crawl                     # sync every source (resumes if interrupted)
-medialib crawl --root nas --fresh  # re-walk one source from scratch
-medialib search breaking bad       # search the index instantly
-medialib play breaking bad s03e07  # open the best match in VLC
-medialib serve --port 8080         # the full app UI in your browser
-medialib stats                     # library size
-```
+## Built with
 
-## Project layout
+[Rust](https://www.rust-lang.org) ·
+[axum](https://github.com/tokio-rs/axum) ·
+[rusqlite](https://github.com/rusqlite/rusqlite) with SQLite FTS5 ·
+[reqwest](https://github.com/seanmonstar/reqwest) ·
+[scraper](https://github.com/causal-agent/scraper) ·
+[roxmltree](https://github.com/RazrFalcon/roxmltree) ·
+[tao](https://github.com/tauri-apps/tao) and [wry](https://github.com/tauri-apps/wry) ·
+Surah names from [quran.com](https://quran.com).
 
-```text
-src/
-├── desktop.rs    desktop window (wry + tao on WebView2)
-├── main.rs       command-line tool (clap)
-├── web.rs        local API + UI server (axum, loopback only)
-├── ui/           the app's interface: HTML, CSS and plain JavaScript
-├── crawler.rs    parallel directory-listing crawler and local folder walker
-├── library.rs    files → movies, shows, seasons and episodes; page queries
-├── naming.rs     titles, years, episodes, quality, audio and platform tags
-├── index.rs      SQLite schema, FTS5 search, resume checkpoints
-├── jobs.rs       background sync and lookup queue with live progress
-├── tmdb.rs       movie and show info from TMDB
-├── assistant.rs  Gemini watch assistant, limited to your library
-└── player.rs     safe hand-off to VLC
-```
-
-Run the tests with `cargo test`.
-
-## Troubleshooting
-
-<details>
-<summary><b>A video won't play inside the app</b></summary>
-
-The in-app player is the browser engine, and it can't decode MKV or
-HEVC/x265, which many releases use. medialib detects this and offers **Open in
-VLC**. Use the VLC button for those files. MP4 and WebM usually play in the
-app.
-</details>
-
-<details>
-<summary><b>"Player not found"</b></summary>
-
-Open **Settings → Player** and use **Browse…** to select `vlc.exe`. It's
-usually at `C:\Program Files\VideoLAN\VLC\vlc.exe`.
-</details>
-
-<details>
-<summary><b>Some titles have the wrong name or year</b></summary>
-
-Folder names vary a lot. Add a TMDB key, then use **Wrong info? Fix the match**
-on the title's page to search again, or paste the themoviedb.org link
-directly.
-</details>
-
-<details>
-<summary><b>A sync was interrupted</b></summary>
-
-Click **Sync** again. HTTP sources continue from where they stopped, and
-**Full rescan** starts over.
-</details>
-
-## Roadmap
-
-- [ ] Prebuilt Windows installer on the Releases page
-- [ ] In-app playback for MKV/HEVC by remuxing through `ffmpeg`
-- [ ] Remember where you stopped in each video
-- [ ] macOS and Linux builds
-
-## Acknowledgements
-
-Built with [axum](https://github.com/tokio-rs/axum),
-[rusqlite](https://github.com/rusqlite/rusqlite),
-[reqwest](https://github.com/seanmonstar/reqwest),
-[scraper](https://github.com/rust-scraper/scraper),
-[wry and tao](https://github.com/tauri-apps/wry), and
-[rfd](https://github.com/PolyMeilex/rfd).
-
-Movie and show information comes from [The Movie Database (TMDB)](https://www.themoviedb.org).
-This product uses the TMDB API but is not endorsed or certified by TMDB.
-
-> [!IMPORTANT]
-> medialib is a library and player, not a source of content. Use it only with
-> servers and folders you are allowed to access.
+<div align="center">
+<br>
+<sub>Made with care for everyone seeking beneficial knowledge.</sub>
+</div>

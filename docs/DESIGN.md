@@ -1,184 +1,102 @@
-# medialib — design notes
+# Noor Library: design notes
 
-How medialib works inside, and why it is built the way it is. For what the app
+How Noor Library works inside, and why it is built this way. For what the app
 does and how to use it, see the [README](../README.md).
-
-## Configuration gotcha
-
-**Every bare key must come before the first `[player]` or `[[roots]]`
-header.** In TOML a bare key belongs to the most recent table header above
-it. A `skip_dirs = [...]` placed under `[[roots]]` would be read as a field of
-that root, and `skip_dirs` itself would stay empty. medialib marks those
-tables `deny_unknown_fields`, so this mistake stops the config from loading
-instead of quietly indexing every `sample/` folder. See
-`config.example.toml`.
 
 ## Layout
 
-```
-src/config.rs     TOML config: sources, filters, player, TMDB, assistant
-src/crawler.rs    BFS over directory listings (and local folder walks)
-src/naming.rs     title / season / episode / year / quality / audio tags
-src/index.rs      SQLite schema, FTS5 search, crawl checkpoints
-src/library.rs    files grouped into movies and shows; page queries
-src/tmdb.rs       TMDB lookups (posters, genres, ratings, episodes)
-src/assistant.rs  Gemini watch assistant, constrained to the library
-src/jobs.rs       background worker: syncs and lookups, with progress
-src/player.rs     URL validation, spawning the external player
-src/web.rs        axum API + UI server (loopback only)
-src/ui/           the single-page UI (HTML, CSS, JS)
-src/main.rs       clap CLI
-src/desktop.rs    the desktop window (WebView2 via wry/tao)
-```
+| File | Role |
+|---|---|
+| `src/config.rs` | TOML config. A source (`[[roots]]`) has exactly one of `url`, `path`, `youtube` or `feed`, plus `kind` (lectures, series, quran), an optional `speaker`, and `speaker_folders`. |
+| `src/crawler.rs` | Breadth-first crawl of HTTP folder listings and local folders, with `visited`/`pending` checkpoints. It sends YouTube to `youtube.rs` and feeds to `feed.rs`. |
+| `src/youtube.rs` | YouTube Data API v3: resolves a handle, channel, user or playlist to its uploads playlist, lists the videos, and fetches their durations. |
+| `src/feed.rs` | RSS (with iTunes tags) and Atom, parsed with roxmltree. It reads durations, dates and artwork. |
+| `src/index.rs` | SQLite schema: `files` (with an external-content FTS5 index), `images`, `titles` and `titles_fts`, `progress`, `source_meta`, `speakers`, and others. |
+| `src/naming.rs` | Reads names: episode numbers (Latin and Bangla digits), surah numbers, language detection, honorifics, and speakers named in titles. |
+| `src/topics.rs` | Topic keys with English and Bangla keywords, matched on whole words. |
+| `src/quran.rs` | All 114 surahs: Arabic, English and Bangla names, verse counts, and Makki or Madani. |
+| `src/library.rs` | Turns files into titles (`rebuild_titles`), and holds every query the UI needs. |
+| `src/web.rs` | axum server: JSON API, `/media/{id}` with Range support, and the embedded UI. |
+| `src/desktop.rs` | tao + wry window, single-instance lock, and data folder `%APPDATA%\NoorLibrary`. |
+| `src/assistant.rs` | Gemini assistant in two passes. |
+| `src/ui/` | `index.html`, `app.css` and `app.js`: the whole UI, with no build step. |
 
-## Design decisions
+## Fetch, then write
 
-### Crawl and search are separate phases
+The crawler never holds the SQLite connection across an `.await`. Each
+folder level is fetched concurrently (in chunks of 200 with `block_on`). The
+results are then written in one transaction, which also records which folders
+are done and which are next. If you stop or close the app mid-sync, the next
+sync carries on from the checkpoint.
 
-Walking a large tree takes minutes, while a search has to come back in
-milliseconds. So `crawl` writes everything into SQLite, and `search`,
-`play` and `serve` only read from that file and never touch the network.
+## Grouping
 
-### Fetch, then write
+`rebuild_titles` runs after each sync and on **Rebuild library**. It clears
+every `title_id`, then groups each source by its `kind`:
 
-The crawl is breadth-first and runs one depth level at a time:
+- **Lectures:**
+  - With `speaker_folders`, the first folder level is the speaker.
+  - Files that differ only by a part number ("Tawheed 01", "Tawheed 02")
+    become one lecture with parts.
+  - A folder holding one talk becomes that talk.
+- **Series:** each folder, or each volume folder, becomes one series, with
+  episodes ordered by their parsed numbers.
+- **Quran:** each reciter folder becomes one title. Files are matched to
+  surahs by number (1–114).
+- **YouTube and feeds:**
+  - As lectures, every video or episode is its own title, and the speaker
+    comes from the title ("… | Dr. X", "… by Sh. X").
+  - Joint talks are credited to their lead speaker.
+  - As a series, the whole source is one title, ordered by position or date.
 
-1. Drop directories already in `visited` (unless `--fresh`).
-2. Fetch the whole level concurrently with
-   `stream::iter(..).map(..).buffer_unordered(concurrency)`.
-3. Collect the results, then write them to SQLite in one transaction.
-4. Queue the subdirectories, sleep `delay_ms`, and repeat.
+Before grouping, `drop_alternate_formats` keeps one file for each name stem in
+a folder, preferring MP3. This means `talk.mp3` plus `talk.wav` shows once.
 
-This ordering is forced by the types. `rusqlite::Connection` is `Send` but not
-`Sync`, so a `&Connection` can't sit inside futures that run concurrently.
-The usual workarounds are an `Arc<Mutex<Connection>>` locked for every row, or
-an async SQLite wrapper. Both add complexity, and both are slower than one
-transaction per level. medialib avoids the problem instead: `crawl_root` is
-ordinary synchronous code that calls `block_on(fetch_level(..))`, and
-`fetch_level` is never given the database. The connection stays out of every
-future.
+Artwork is the folder's own picture, so `poster`, `cover`, `folder` and
+`thumb` win. The Internet Archive adds machine-made images to every audio
+item:
 
-Before parsing a response, the crawler checks that its `Content-Type`
-contains `text/html`. If a link that looked like a directory turns out to be
-a video file, the response is dropped before its body is downloaded. Links
-are only followed when they stay on the same scheme, host and port and under
-the root's path. Without that check, a single offsite link would send the
-crawler out onto the open internet.
+- `X_spectrogram.png` is a spectrogram.
+- `X.png` next to it is a waveform.
+- `__ia_thumb.jpg` is cut from one of those unless the item has a real
+  picture.
 
-### Resume checkpoints: `visited` + `pending`
+All of these are skipped. A title with no artwork gets a generated tile in
+the UI.
 
-The checkpoint is two tables:
+## Progress
 
-- `visited(url, root, done_at)` lists the directories whose files have been
-  written.
-- `pending(url, root, depth)` is the BFS frontier: directories that have been
-  discovered but not yet fetched.
+The player posts `/api/progress` about every 8 seconds and on pause. A
+position at 95% or more counts as finished. *Up next* on a series or Quran
+page is the first unfinished item after the last one played, and it resumes
+from the saved position once that is past 30 seconds.
 
-`visited` alone isn't enough to resume. A directory's children are only known
-by fetching it, so an interrupted crawl that skipped every visited directory
-would never reach the unvisited ones below them. Saving the frontier fixes
-that.
+## Security
 
-Each level is committed in a single transaction. That transaction upserts the
-level's files, marks its directories visited, removes them from `pending`, and
-queues their children. An interrupted crawl therefore can't leave a directory
-marked done when its files were never written, and the next run continues
-from exactly the saved frontier.
+The UI server binds to `127.0.0.1` and rejects requests whose `Host` header
+isn't the loopback address. This blocks DNS-rebinding pages. `/media/{id}`
+serves only files in the index, and `/api/open-url` opens only a short
+allowlist of sites:
 
-`max_depth` stays as a separate guard. A symlink loop produces URLs that keep
-getting longer and are all different, so `visited` never catches it.
+- Google AI Studio
+- Google Cloud Console
+- Google developer docs
+- VideoLAN
+- YouTube
 
-### External-content FTS5
+API keys are stored only in the local config file. The settings page reads
+them back through the loopback-only API so you can view and edit them.
 
-```sql
-CREATE VIRTUAL TABLE files_fts USING fts5(
-  name, dir, title,
-  content='files', content_rowid='id',
-  tokenize='unicode61 remove_diacritics 2'
-);
-```
+## Gemini assistant
 
-In external-content mode, the FTS index refers to rows in `files` instead of
-keeping its own copy of the text. With a few hundred thousand filenames, that
-roughly halves the size of the database. The trade-off is that FTS5 no longer
-notices changes to `files` by itself, so `AFTER INSERT/DELETE/UPDATE` triggers
-keep it in sync. The update trigger fires only for the indexed columns. A
-re-crawl updates `seen_at` on every row, and rewriting the FTS entries for
-that would be wasted work.
+1. **Intent:** Gemini turns the request into a plan (speakers, topics,
+   language, kind, maximum minutes, and keywords in English and Bangla). It
+   uses a summary of the library to do this.
+2. **Candidates:** the app runs that plan against the local index (FTS,
+   speaker, topic, then recent items) and collects up to 120 candidates.
+3. **Choose:** Gemini picks from the candidates by id. Any id that isn't a
+   candidate is dropped, so the assistant can't recommend something you
+   don't have.
 
-Ranking uses `bm25(files_fts, 10.0, 1.0, 5.0)`. The filename gets the most
-weight and the directory the least, because every file in a show's folder
-shares the same `dir`.
-
-Writes use `INSERT ... ON CONFLICT(url) DO UPDATE` rather than
-`INSERT OR REPLACE`. `REPLACE` deletes the row and inserts it again, which
-would give it a new `id` and force a full FTS rewrite.
-
-### Escaping search input
-
-FTS5 parses its `MATCH` argument as a query language. A raw `spider-man` or
-`what's up` is a syntax error, not a search that finds nothing. User input is
-therefore split on whitespace, stripped of punctuation at each token's edges,
-quoted, and given a trailing `*` for prefix matching:
-`"breaking"* "bad"*`.
-
-### Filename parsing
-
-`naming::parse` normalises `.` and `_` to spaces. It then cuts at the earliest
-of three markers: an episode marker (`S01E02`, `1x02`), a year that isn't at
-position 0, or the first release tag (`1080p`, `BluRay`, `x265`, `REMUX`, …).
-Everything before the cut is the title. When several years appear, the last
-one before the other markers is used, so `Blade Runner 2049 2017` keeps the
-2049. Every regex is compiled once in a `OnceLock`. Compiling a regex per
-filename would take longer than the rest of the crawl's CPU work.
-
-### Movies and shows from folders
-
-`library::rebuild_titles` runs after every sync and groups a source's files
-into titles. For a *Movies* source, a folder holding one movie (the common
-`Name (2024) 720p [Dual Audio]/` layout) is one title named by the folder;
-loose files in a year folder each name themselves. For a *TV shows* source,
-it walks up past `Season N` folders to the show folder, which names the show
-(`Show (TV Series 2023– )` also gives the year and "ongoing"). Episode numbers
-come from `S01E02`, `1x02`, `E02` or a trailing number. Quality, Dual/Multi
-audio and platform tags (NF, AMZN, DSNP…) are read from folder and file
-names, and an image in the folder becomes the poster. Titles are keyed by
-(source, folder), so re-syncs keep watchlist entries and looked-up info
-attached.
-
-### The assistant can't invent titles
-
-The model never decides on its own what to show. A first Gemini call turns
-the request into title guesses and filters; the app finds the titles that
-really exist (exact title matches, then genre/language/year matches ranked
-by rating); a second call picks from that candidate list by id. Ids that
-weren't offered are dropped, so every pick links to something playable.
-
-### Player safety
-
-`player::play` accepts only `http` and `https` URLs that have a host. The
-reason isn't shell injection: `std::process::Command` doesn't use a shell, so
-a crafted filename is just bytes in one argument. The check stops the player
-from being pointed at `file:///…`, `javascript:`, or any other URL scheme the
-player understands. Local files are handed over as plain paths, and only
-when they are in the index. The API refuses anything that isn't in the
-index, opens only allow-listed help links, and rejects requests with a
-non-loopback `Host` header to block DNS rebinding.
-
-## Tests
-
-```sh
-cargo test
-```
-
-The tests cover filename and folder parsing, listing parsing (nginx, h5ai,
-python and table layouts, including rejection of parent and offsite links),
-grouping DhakaFlix-style layouts into titles, FTS escaping, upserts,
-checkpoints, config key ordering, TMDB matching, URL scheme validation and
-playability.
-
-## Ideas not built yet
-
-- `ffmpeg` remux/transcode streamed through the local server for files the
-  browser refuses, which would remove the playability problem entirely
-- Per-file resume position (needs VLC's HTTP interface to read it back)
+The prompts forbid religious rulings. Only chat-capable models are offered,
+and a busy model falls back to a lighter one.

@@ -5,7 +5,7 @@
 //! files, images and source details on record, so it can always be re-run,
 //! and titles are keyed by (source, key) so a re-sync updates them in place.
 
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
 use anyhow::Result;
 use rusqlite::{params, params_from_iter, Connection, OptionalExtension, Row};
@@ -103,6 +103,9 @@ pub fn rebuild_titles(index: &mut Index, root: &Root) -> Result<usize> {
                  updated_at = excluded.updated_at
              RETURNING id",
         )?;
+        // Files not grouped this time (alternate formats, say) must not
+        // keep pointing at their old title.
+        tx.execute("UPDATE files SET title_id = NULL WHERE root = ?1", [&root.name])?;
         let mut assign = tx.prepare_cached(
             "UPDATE files SET title_id = ?1, season = ?2, episode = ?3 WHERE id = ?4",
         )?;
@@ -136,7 +139,11 @@ pub fn rebuild_titles(index: &mut Index, root: &Root) -> Result<usize> {
             };
             // From the talk's own words only: speaker and folder names are
             // often in Latin letters even for Bangla lectures.
-            let language = naming::language(&format!("{} {}", g.name, labels.join(" ")));
+            let language = if g.kind == "quran" {
+                Some("ar")
+            } else {
+                naming::language(&format!("{} {}", g.name, labels.join(" ")))
+            };
             let media = if youtube {
                 "youtube"
             } else if g.items.iter().any(|&(i, _, _)| is_video(&files[i].name)) {
@@ -246,9 +253,11 @@ fn drop_alternate_formats(files: Vec<FileInfo>) -> Vec<FileInfo> {
             _ => 4,
         }
     }
+    // Compared on letters and digits only, so "Gems From The Qur’an – Day 1"
+    // and "GemsFromTheQuranDay1" count as the same talk.
     let stem = |f: &FileInfo| -> String {
         let n = f.name.rsplit_once('.').map_or(f.name.as_str(), |(s, _)| s);
-        format!("{}#{}", f.dir_url, n.to_lowercase())
+        format!("{}#{}", f.dir_url, naming::title_key(n))
     };
     let mut best: HashMap<String, (u8, usize)> = HashMap::new();
     for (i, f) in files.iter().enumerate() {
@@ -455,7 +464,7 @@ fn group_lectures(files: &[FileInfo], base: &str, speaker_folders: bool) -> Vec<
         if single {
             let name = folder_title
                 .filter(|t| t.chars().any(char::is_alphabetic))
-                .unwrap_or_else(|| base_label(&labels[0]));
+                .unwrap_or_else(|| naming::strip_part(&labels[0]));
             let key = format!("d:{dir}");
             let at = *index_of.entry(key.clone()).or_insert_with(|| {
                 groups.push(Group {
@@ -484,7 +493,7 @@ fn group_lectures(files: &[FileInfo], base: &str, speaker_folders: bool) -> Vec<
                 groups.push(Group {
                     key,
                     kind: "lecture",
-                    name: if base_name.is_empty() { label.clone() } else { base_name.clone() },
+                    name: naming::strip_part(label),
                     year: naming::parse(&files[i].name).year,
                     speaker: speaker.clone(),
                     dir_url: dir.to_string(),
@@ -616,12 +625,22 @@ fn group_external(files: &[FileInfo], root: &Root, meta: &SourceMeta) -> Vec<Gro
         return files
             .iter()
             .enumerate()
-            .map(|(i, f)| Group {
+            .map(|(i, f)| {
+                let label = f.label.clone().unwrap_or_else(|| naming::clean_label(&f.name));
+                // Channels and podcasts often host many speakers and name
+                // them in the title; prefer that over the channel's name.
+                let (speaker, name) = match naming::speaker_from_title(&label) {
+                    Some((sp, rest)) if root.speaker.is_none() => (Some(sp), rest),
+                    _ => (f.speaker.as_deref().map(naming::lead_speaker), label),
+                };
+                (i, f, speaker, name)
+            })
+            .map(|(i, f, speaker, name)| Group {
                 key: format!("v:{}", f.url),
                 kind: "lecture",
-                name: f.label.clone().unwrap_or_else(|| naming::clean_label(&f.name)),
+                name,
                 year: f.published_at.map(year_of),
-                speaker: f.speaker.clone(),
+                speaker,
                 description: f.description.clone(),
                 poster: f.thumb.clone(),
                 dir_url: f.url.clone(),
@@ -672,14 +691,26 @@ fn pick_poster(
     dir_url: &str,
     file_dir: Option<&String>,
 ) -> Option<String> {
-    let candidates: Vec<&(String, String)> = images
-        .get(dir_url)
-        .or_else(|| file_dir.and_then(|d| images.get(d)))?
+    let all = images.get(dir_url).or_else(|| file_dir.and_then(|d| images.get(d)))?;
+    // Machine-made pictures aren't artwork: the Internet Archive makes a
+    // spectrogram ("X_spectrogram.png") and a waveform ("X.png") for every
+    // audio file, and its "__ia_thumb.jpg" is cut from one of them unless
+    // the item has a real picture.
+    let stem = |name: &str| name.rsplit_once('.').map_or(name, |(s, _)| s).to_lowercase();
+    let spectrograms: HashSet<String> = all
         .iter()
-        // Machine-made pictures (the Internet Archive's spectrograms) aren't
-        // artwork.
-        .filter(|(_, name)| !name.to_lowercase().contains("spectrogram"))
+        .filter_map(|(_, n)| stem(n).strip_suffix("_spectrogram").map(String::from))
         .collect();
+    let artwork: Vec<&(String, String)> = all
+        .iter()
+        .filter(|(_, n)| {
+            let s = stem(n);
+            !s.ends_with("_spectrogram") && !spectrograms.contains(&s)
+        })
+        .collect();
+    let real = artwork.iter().any(|(_, n)| stem(n) != "__ia_thumb");
+    let candidates: Vec<&(String, String)> =
+        artwork.into_iter().filter(|(_, n)| real || stem(n) != "__ia_thumb").collect();
     let score = |name: &str| {
         let n = name.to_lowercase();
         if n.contains("poster") || n.contains("cover") || n.starts_with("folder") || n.contains("thumb") {
@@ -1327,6 +1358,20 @@ pub fn local_poster(conn: &Connection, title_id: i64) -> Result<Option<String>> 
 mod tests {
     use super::*;
     use crate::index::{FileRow, ImageRow};
+
+    #[test]
+    fn archive_waveforms_are_not_posters() {
+        let dir = "https://archive.org/download/x/";
+        let imgs = |names: &[&str]| {
+            let mut m = HashMap::new();
+            m.insert(dir.to_string(), names.iter().map(|n| (format!("{dir}{n}"), n.to_string())).collect());
+            m
+        };
+        let only_machine = imgs(&["Day1.png", "Day1_spectrogram.png", "__ia_thumb.jpg"]);
+        assert_eq!(pick_poster(&only_machine, dir, None), None);
+        let with_photo = imgs(&["001.png", "001_spectrogram.png", "reciter.jpeg", "__ia_thumb.jpg"]);
+        assert_eq!(pick_poster(&with_photo, dir, None), Some(format!("{dir}__ia_thumb.jpg")));
+    }
 
     fn file(root: &str, url: &str) -> FileRow {
         let name = percent_decode(url.rsplit('/').next().unwrap());

@@ -1,56 +1,88 @@
-# medialib configuration. Copy to config.toml and edit.
+# Noor Library configuration. The desktop app writes this file for you
+# (%APPDATA%\NoorLibrary\config.toml); hand edits are fine too.
 #
 # !! KEY ORDER MATTERS !!
 # Every bare key (db_path, concurrency, media_extensions, skip_dirs, ...) must
-# come BEFORE the first [player] or [[roots]] header. In TOML a bare key
+# come BEFORE the first [table] or [[roots]] header. In TOML a bare key
 # belongs to the most recent header above it, so `skip_dirs = [...]` written
 # below [[roots]] becomes a field of that root, not a top-level setting.
-# medialib rejects unknown fields in those tables, so that mistake is a load
-# error instead of a crawl that quietly indexes every sample folder.
 
-# SQLite file holding the index and the crawl checkpoints.
-db_path = "medialib.db"
+# SQLite file holding the library, play history and crawl checkpoints.
+db_path = "noor.db"
 
-# Directory pages fetched in parallel. Keep this modest on a home NAS.
-concurrency = 4
+# Folder pages fetched in parallel. Keep this modest on a home server.
+concurrency = 6
 
-# Pause between depth levels, in milliseconds.
-delay_ms = 250
+# Pause between folder levels, in milliseconds.
+delay_ms = 50
 
 # Per-request timeout, in seconds.
 timeout_secs = 20
 
-# Maximum directory depth below a root. Stops symlink loops, which produce
-# ever-longer distinct URLs and so are never caught as "already visited".
+# Maximum folder depth below a source.
 max_depth = 12
 
-# File extensions to index (case-insensitive, leading dot optional).
+# File types to index (audio and video).
 media_extensions = [
-  "mkv", "mp4", "m4v", "avi", "mov", "webm", "wmv",
-  "ts", "m2ts", "mpg", "mpeg", "ogv",
+  "mp3", "m4a", "aac", "ogg", "opus", "wav", "flac", "wma", "amr",
+  "mp4", "m4v", "mkv", "webm", "avi", "mov", "wmv", "flv", "3gp", "ts", "mpg", "mpeg",
 ]
 
-# Directories to skip: case-insensitive SUBSTRING match on the directory name,
-# so "sample" also skips "Movie.Sample" and "Samples".
-skip_dirs = ["sample", "featurettes", "extras", "behind the scenes"]
+# Folders to skip (case-insensitive substring match on the folder name).
+skip_dirs = []
 
-# External player. {url} in any argument is replaced with the media URL; if no
-# argument contains {url}, the URL is appended at the end.
+[ui]
+# "bn" (Bangla) or "en" (English).
+language = "bn"
+
 [player]
+# Used for formats the built-in player can't play, or for everything when
+# external_only = true. {url} is replaced with the media URL.
 command = "vlc"
 args = ["--play-and-exit", "{url}"]
-# Windows, when VLC isn't on PATH:
-# command = 'C:\Program Files\VideoLAN\VLC\vlc.exe'
-# mpv instead:
-# command = "mpv"
-# args = ["--force-window=immediate", "{url}"]
+external_only = false
 
-# One block per listing server or share. Crawling stays on the same host and
-# below this path. A trailing slash is added if missing.
+[youtube]
+# YouTube Data API v3 key; needed only for YouTube sources.
+api_key = ""
+
+[assistant]
+# Gemini API key from https://aistudio.google.com/apikey (optional).
+api_key = ""
+model = "gemini-flash-latest"
+
+# One block per source. Give exactly one of url / path / youtube / feed.
+# kind is "lectures", "series" or "quran".
+
+# A server folder link (an HTTP directory listing).
 [[roots]]
-name = "nas"
-url = "http://192.168.1.10/media/"
+name = "Waz Mahfil"
+url = "http://192.168.1.10/Islamic/Waz/"
+kind = "lectures"
+speaker_folders = true      # Waz/<Speaker name>/<talk>.mp3
 
+# A folder on this PC.
+[[roots]]
+name = "Tafsir"
+path = 'D:\Islamic\Tafsir'
+kind = "series"
+speaker = "Shaykh Ahmadullah"
+
+# A Quran recitation (files or folders named by surah number).
+[[roots]]
+name = "Mishary Alafasy"
+url = "https://server8.mp3quran.net/afs/"
+kind = "quran"
+speaker = "Mishary Rashid Alafasy"
+
+# A YouTube channel or playlist.
 # [[roots]]
-# name = "archive"
-# url = "https://mirror.example.org/pub/videos/"
+# name = "Yaqeen Institute"
+# youtube = "https://www.youtube.com/@YaqeenInstitute"
+# kind = "lectures"
+
+# A podcast feed (RSS or Atom).
+# [[roots]]
+# name = "Yaqeen Podcast"
+# feed = "https://rss.buzzsprout.com/1014445.rss"
+# kind = "lectures"

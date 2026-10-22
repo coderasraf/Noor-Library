@@ -498,6 +498,83 @@ pub fn language(text: &str) -> Option<&'static str> {
     (script.0 > 0).then_some(script.1)
 }
 
+fn part_suffix_re() -> &'static Regex {
+    static RE: OnceLock<Regex> = OnceLock::new();
+    RE.get_or_init(|| {
+        Regex::new(r"(?i)[\s\-–_,:]*(?:\b(?:part|pt|episode|ep|lecture|day|class|session)|পর্ব|খণ্ড|পার্ট)\s*[-._#:]?\s*\d{1,3}\s*$").unwrap()
+    })
+}
+
+/// A talk's name without a trailing "Part 2" / "পর্ব ২" / "Day 3": what
+/// all its parts share. Other punctuation stays: "The Night Prayer (Tahajjud)".
+pub fn strip_part(label: &str) -> String {
+    let ascii = ascii_digits(label);
+    let stripped = part_suffix_re().replace(&ascii, "");
+    let out = stripped.trim().trim_end_matches(['-', '–', ',', ':']).trim();
+    if out.is_empty() {
+        label.to_string()
+    } else if out.len() == ascii.trim().len() {
+        // Nothing to strip; keep the original digits (Bangla stays Bangla).
+        label.trim().to_string()
+    } else {
+        out.to_string()
+    }
+}
+
+const HONORIFICS: &[&str] = &[
+    "dr.", "dr", "sh.", "sh", "shaykh", "sheikh", "shaikh", "imam", "ustadh", "ustadha", "ustaz", "mufti",
+    "maulana", "moulana", "mawlana", "hafiz", "qari", "br.", "sr.", "prof.", "prof", "allama", "allamah",
+];
+
+/// A speaker name without titles: "Dr. Omar Suleiman" -> "Omar Suleiman".
+pub fn plain_speaker(name: &str) -> String {
+    let mut words: Vec<&str> = name.split_whitespace().collect();
+    while words.len() > 2 && HONORIFICS.contains(&words[0].to_lowercase().as_str()) {
+        words.remove(0);
+    }
+    words.join(" ")
+}
+
+/// The first of several speakers, without titles: "Omar Suleiman and Sh.
+/// Yaser Birjas" -> "Omar Suleiman", so a joint talk sits with its lead
+/// speaker instead of under a speaker of its own.
+pub fn lead_speaker(name: &str) -> String {
+    let lower = name.to_lowercase();
+    let cut = [" and ", " & ", ", ", " with ", " ft. ", " feat. ", " ও "]
+        .iter()
+        .filter_map(|sep| lower.find(sep))
+        .min()
+        .filter(|&i| name.is_char_boundary(i))
+        .unwrap_or(name.len());
+    plain_speaker(name[..cut].trim())
+}
+
+/// The speaker named in a podcast / video title, and the title without
+/// them: "Are You Tired? | Signs of the Hour Ep. 18 | Dr. Omar Suleiman"
+/// -> ("Omar Suleiman", "Are You Tired? | Signs of the Hour Ep. 18");
+/// "Why Hosts Do Less | Khutbah by Sh. Mohammad Elshinawy" also works.
+pub fn speaker_from_title(title: &str) -> Option<(String, String)> {
+    let (rest, last) = title.rsplit_once(" | ").or_else(|| title.rsplit_once(" - "))?;
+    let last = last.trim();
+    let lower = last.to_lowercase();
+    let after_by = lower.find(" by ").map(|i| &last[i + 4..]);
+    let candidate = after_by.unwrap_or(last).trim();
+    let first = candidate.split_whitespace().next()?.to_lowercase();
+    if !HONORIFICS.contains(&first.as_str()) {
+        return None;
+    }
+    let name = lead_speaker(candidate);
+    if name.split_whitespace().count() < 2 || name.len() > 60 {
+        return None;
+    }
+    let cleaned = if after_by.is_some() {
+        format!("{} | {}", rest.trim(), last[..lower.find(" by ").unwrap()].trim())
+    } else {
+        rest.trim().to_string()
+    };
+    Some((name, cleaned))
+}
+
 /// Removes a short alphanumeric extension; leaves "Mr. Robot" alone.
 fn strip_extension(name: &str) -> &str {
     match name.rsplit_once('.') {
@@ -575,6 +652,20 @@ mod tests {
         assert_eq!(clean_label("GemsFromTheQuranRamadhan2016Day10.mp3"), "Gems From The Quran Ramadhan 2016 Day 10");
         assert_eq!(episode_number("GemsFromTheQuranRamadhan2016Day10.mp3"), Some(10));
         assert_eq!(clean_label("Tawheed.mp3"), "Tawheed");
+        assert_eq!(strip_part("The Night Prayer (Tahajjud)"), "The Night Prayer (Tahajjud)");
+        assert_eq!(strip_part("Patience Part 2"), "Patience");
+        assert_eq!(strip_part("নামাজের গুরুত্ব পর্ব ২"), "নামাজের গুরুত্ব");
+        assert_eq!(strip_part("ধৈর্যের ফজিলত"), "ধৈর্যের ফজিলত");
+        assert_eq!(plain_speaker("Dr. Omar Suleiman"), "Omar Suleiman");
+        assert_eq!(plain_speaker("Mufti Menk"), "Mufti Menk");
+        assert_eq!(lead_speaker("Omar Suleiman & Sh. Yaser Birjas"), "Omar Suleiman");
+        assert_eq!(lead_speaker("Dr. Omar Suleiman and Sh. Ali Hammuda"), "Omar Suleiman");
+        assert_eq!(lead_speaker("শায়খ আহমাদুল্লাহ"), "শায়খ আহমাদুল্লাহ");
+        let (sp, rest) = speaker_from_title("Are You Tired Of Being Here? | Signs of the Hour Ep. 18 | Dr. Omar Suleiman").unwrap();
+        assert_eq!((sp.as_str(), rest.as_str()), ("Omar Suleiman", "Are You Tired Of Being Here? | Signs of the Hour Ep. 18"));
+        let (sp, rest) = speaker_from_title("Why Hosts Do Less | Khutbah by Sh. Mohammad Elshinawy").unwrap();
+        assert_eq!((sp.as_str(), rest.as_str()), ("Mohammad Elshinawy", "Why Hosts Do Less | Khutbah"));
+        assert!(speaker_from_title("Ramadan Reflections | Day 3").is_none());
         assert_eq!(clean_label("01_Tawheed-Part_2 [128kbps].mp3"), "Tawheed-Part 2");
         assert_eq!(clean_label("Dr. Zakir Naik - Q&A.mp4"), "Dr. Zakir Naik - Q&A");
         assert_eq!(clean_label("The.Sealed.Nectar.mp3"), "The Sealed Nectar");

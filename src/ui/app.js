@@ -356,7 +356,13 @@ function hashColor(s) {
   const hue = Math.abs(x) % 360;
   return `linear-gradient(135deg, hsl(${hue} 45% 32%), hsl(${(hue + 40) % 360} 50% 16%))`;
 }
-const initials = (name) => (name || '?').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => [...w][0]).join('').toUpperCase();
+// Titles such as "Dr." or "শায়খ" are skipped, so "Sh. Elshinawy" reads "E".
+const HONORIFICS = new Set(['dr.', 'dr', 'sh.', 'sh', 'shaykh', 'sheikh', 'shaikh', 'imam', 'ustadh', 'ustadha', 'ustaz', 'mufti', 'maulana', 'mawlana', 'hafiz', 'qari', 'prof.', 'শায়খ', 'শাইখ', 'শায়েখ', 'ড.', 'ডক্টর', 'মাওলানা', 'মুফতি', 'হাফেজ', 'ক্বারী', 'কারী', 'ইমাম', 'উস্তাদ']);
+const initials = (name) => {
+  const words = (name || '?').split(/\s+/).filter(Boolean);
+  const plain = words.filter((w) => !HONORIFICS.has(w.toLowerCase()));
+  return (plain.length ? plain : words).slice(0, 2).map((w) => [...w][0]).join('').toUpperCase();
+};
 const ext = (name) => (String(name).split(/[?#]/)[0].split('.').pop() || '').toLowerCase();
 const AUDIO = new Set(['mp3', 'm4a', 'aac', 'ogg', 'opus', 'wav', 'flac']);
 const VIDEO_OK = new Set(['mp4', 'm4v', 'webm', 'mov', '3gp']);
@@ -1310,7 +1316,7 @@ function sourcesTab(body) {
         h('div', { class: 'loc', text: s.location, title: s.location }), when),
       h('div', { class: 'row-actions' },
         h('button', { class: 'btn small', disabled: s.syncing || s.queued, async onclick() { await POST(`/api/sources/${enc}/sync`).catch((e) => toast(e.message, true)); refreshState(); } }, icon('sync'), t('sync')),
-        h('button', { class: 'icon-btn', title: t('stop'), disabled: !(s.syncing || s.queued), async onclick() { await POST(`/api/sources/${enc}/stop`); refreshState(); } }, icon('stop')),
+        (s.syncing || s.queued) && h('button', { class: 'icon-btn', title: t('stop'), async onclick() { await POST(`/api/sources/${enc}/stop`); refreshState(); } }, icon('stop')),
         h('button', { class: 'icon-btn', title: t('edit'), onclick() { editRow(row, s); } }, icon('pencil')),
         h('button', { class: 'icon-btn danger', title: t('del'), async onclick() {
           if (!await confirmBox(t('deleteQ', s.name), t('deleteText'), t('del'), true)) return;
